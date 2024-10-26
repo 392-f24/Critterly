@@ -4,6 +4,10 @@
 .idea
 **/node_modules/*
 
+
+.env
+
+
 ### Firebase Patch ###
 .runtimeconfig.json
 .firebase/
