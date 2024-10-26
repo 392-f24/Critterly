@@ -1,7 +1,8 @@
 import { initializeApp } from "firebase/app"; // Import Firebase app initialization
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_API_KEY,
@@ -14,6 +15,11 @@ const firebaseConfig = {
 };
 
 const firebase = initializeApp(firebaseConfig); // Initialize Firebase app
+const storage = getStorage(firebase);
+const db = getFirestore(firebase);
+
+export {storage, db};
+
 
 export const signInWithGoogle = () => {
   signInWithPopup(getAuth(firebase), new GoogleAuthProvider());

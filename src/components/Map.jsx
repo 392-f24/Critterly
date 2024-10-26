@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Map() {
     const navigate = useNavigate();
-
     const handleClick = () => {
         navigate('/create_post'); 
     };
