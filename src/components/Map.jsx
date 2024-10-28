@@ -22,19 +22,32 @@ export default function Map() {
     };
 
     // Function to create content for info windows
+    // Function to create content for info windows
+// Function to create content for info windows
     const createInfoWindowContent = (post) => {
         return `
-            <div style="width: 300px; padding: 10px;">
-                <img src="${post.photo}" alt="${post.title}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 4px;">
-                <h3 style="margin: 8px 0; color: #333;">${post.title}</h3>
-                <p style="margin: 8px 0; color: #666;">${post.description}</p>
-                <p style="margin: 4px 0; color: #888; font-size: 12px;">
-                    Posted: ${new Date(post.date).toLocaleDateString()}
-                </p>
+            <div style="width: 250px; display: flex; flex-direction: column; align-items: center;">
+                <div style="width: 100%; max-height: 150px; display: flex; justify-content: center; align-items: center; overflow: hidden;">
+                    <img src="${post.photo}" 
+                        alt="${post.title}" 
+                        style="max-width: 100%;
+                                max-height: 150px;
+                                object-fit: contain;
+                                display: block;
+                                margin: 0 auto;"
+                    />
+                </div>
+                <div style="padding: 8px; width: 100%;">
+                    <h3 style="margin: 6px 0; color: #333; font-size: 16px;">${post.title}</h3>
+                    <p style="margin: 6px 0; color: #666; font-size: 14px;">${post.description}</p>
+                    <p style="margin: 4px 0; color: #888; font-size: 12px;">
+                        Posted: ${new Date(post.date).toLocaleDateString()}
+                    </p>
+                </div>
             </div>
         `;
     };
-
+    
 
     React.useEffect(() => {
         const loader = new Loader({

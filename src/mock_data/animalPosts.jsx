@@ -1,6 +1,7 @@
 import orangeTabby from './orange-tabby.jpg';
 import duck from './duck.jpg';
 import pizzaSquirrel from './PizzaSquirrel.jpeg';
+import skunk from './skunk.jpg';
 
 export const mockAnimalPosts = [
     {
@@ -26,5 +27,13 @@ export const mockAnimalPosts = [
         photo: pizzaSquirrel,
         address: '633 Clark St, Evanston, IL 60208', // The Rock area
         date: new Date().toISOString()
-    }
+    },
+    {
+        id: 4,
+        title: 'Stinky Skunk',
+        description: 'A stinky skunk lurking around Kellogg. Be careful!',
+        photo: skunk,
+        address: '2211 N Campus Drive, Evanston, IL 60208', // Lakefill area
+        date: new Date().toISOString()
+    },
 ];
