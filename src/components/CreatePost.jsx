@@ -10,10 +10,6 @@ import { useNavigate } from 'react-router-dom';
 import LocationInput from "./LocationInput";
 
 
-// validate users before allowing them to post
-//const auth = getAuth();
-//const user = auth.currentUser;
-
 const CreatePost = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [caption, setCaption] = useState("");
@@ -24,7 +20,7 @@ const CreatePost = () => {
 
   const handleLocationSelect = (place) => {
     console.log('Selected place:', place);
-    setGeotag(place);
+    setGeotag(place.formatted_address);
   };
 
   const handleImageChange = (e) => {
@@ -56,7 +52,7 @@ const CreatePost = () => {
 
     const postData = {
       caption,
-      geotag: "2145 Sheridan Rd, Evanston, IL 60208, USA", // hardcoded location
+      geotag,
       imageUrl,
       createdAt: new Date(),
       userId: user.uid, // Use the logged-in user ID
@@ -65,7 +61,6 @@ const CreatePost = () => {
 
     // Save to Firestore
     await setDoc(doc(db, "posts", Date.now().toString()), postData);
-
 
       // Reset the form state
       setSelectedImage(null);
@@ -80,18 +75,6 @@ const CreatePost = () => {
     }
   };
 
-  /*
-  const handleGeotagChange = (e) => {
-    const value = e.target.value;
-    setGeotag(value);
-    fetchLocationSuggestions(value);
-  };
-
-  const handleSuggestionClick = (suggestion) => {
-    setGeotag(suggestion.description);
-    setSuggestions([]); // Clear suggestions after selection
-  };
-  */
 
   return (
     <div style={styles.container}>
@@ -134,7 +117,7 @@ const CreatePost = () => {
 
         <button
           onClick={handlePostSubmit}
-          disabled={!selectedImage || !caption || !location}
+          disabled={!selectedImage || !caption || !geotag}
           style={styles.button}
         >
           Post

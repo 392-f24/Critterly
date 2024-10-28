@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 
 const LocationInput = ({ onLocationSelect }) => {
   const [inputValue, setInputValue] = useState('');
@@ -7,18 +7,18 @@ const LocationInput = ({ onLocationSelect }) => {
   useEffect(() => {
     const loadScript = (url) => {
       return new Promise((resolve, reject) => {
-        // check if script is already loaded
+        // Check if the script is already loaded
         if (document.querySelector(`script[src="${url}"]`)) {
-            resolve(); // If it's already loaded, resolve immediately
-            return;
+          resolve(); // If it's already loaded, resolve immediately
+          return;
         }
 
         const script = document.createElement('script');
         script.src = url;
-        script.async = true;
-        script.defer = true;
+        script.async = true; // Set async for optimal performance
+        script.defer = true; // Also defer loading
         script.onload = () => resolve();
-        script.onerror = () => reject();
+        script.onerror = () => reject(new Error(`Failed to load script: ${url}`));
         document.body.appendChild(script);
       });
     };
@@ -26,7 +26,7 @@ const LocationInput = ({ onLocationSelect }) => {
     const initAutocomplete = () => {
       if (autocompleteRef.current && window.google) {
         const options = {
-          types: ['geocode'],
+          types: ['geocode'], // Specify address suggestions
         };
 
         const autoCompleteInstance = new window.google.maps.places.Autocomplete(autocompleteRef.current, options);
@@ -39,7 +39,11 @@ const LocationInput = ({ onLocationSelect }) => {
       }
     };
 
-    loadScript(`https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`)
+    // Construct the API URL
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    const url = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+
+    loadScript(url)
       .then(() => {
         initAutocomplete();
       })
@@ -60,4 +64,5 @@ const LocationInput = ({ onLocationSelect }) => {
 };
 
 export default LocationInput;
+
 
