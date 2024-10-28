@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaMapMarkerAlt, FaArrowLeft } from "react-icons/fa";
+import { FaMapMarkerAlt, FaArrowLeft, FaMagic } from "react-icons/fa";
 import { storage, db, useAuthState } from "../utilities/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
@@ -59,6 +59,11 @@ const CreatePost = () => {
     }
   };
 
+  const handleCharacterizeImage = () => {
+    // Handle image characterization logic here
+    alert("Characterizing the image...");
+  };
+
   return (
     <div style={styles.container}>
       <button
@@ -90,6 +95,14 @@ const CreatePost = () => {
             <p style={styles.imagePlaceholder}>No Image Selected</p>
           )}
         </div>
+
+        <button
+          onClick={handleCharacterizeImage}
+          style={styles.characterizeButton}
+        >
+          <FaMagic style={{ marginRight: "8px" }} />
+          Characterize Image
+        </button>
 
         <div style={styles.inputGroup}>
           <label>Caption</label>
@@ -172,6 +185,18 @@ const styles = {
     borderRadius: "4px",
     cursor: "pointer",
     marginTop: "10px",
+    fontSize: "16px",
+  },
+  characterizeButton: {
+    padding: "10px 15px",
+    backgroundColor: "#ff69b4",
+    color: "#fff",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    marginBottom: "15px",
     fontSize: "16px",
   },
   backButton: {
