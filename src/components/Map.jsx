@@ -3,38 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader } from '@googlemaps/js-api-loader';
 import Navigation from './Navigation';
 import styles from './Map.module.css';
-
-import orangeTabby from '../mock_data/orange-tabby.jpg';
-import duck from '../mock_data/duck.jpg';
-import pizzaSquirrel from '../mock_data/PizzaSquirrel.jpeg';
-
-// Mock animal posts data
-const mockAnimalPosts = [
-    {
-        id: 1,
-        title: 'Friendly Campus Cat',
-        description: 'Spotted this orange tabby cat near the library! Super friendly and loves pets.',
-        photo: orangeTabby,
-        address: '1970 Campus Drive, Evanston, IL 60208', // University Library
-        date: new Date().toISOString()
-    },
-    {
-        id: 2,
-        title: 'Duck Family',
-        description: 'A mother duck with ducklings near the rocks! So cute!',
-        photo: duck,
-        address: '1999 Campus Drive, Evanston, IL 60208', // Lakefill area
-        date: new Date().toISOString()
-    },
-    {
-        id: 3,
-        title: 'Squirrel with Pizza',
-        description: 'This ambitious squirrel is trying to carry an entire slice of pizza up a tree 😂',
-        photo: pizzaSquirrel,
-        address: '633 Clark St, Evanston, IL 60208', // The Rock area
-        date: new Date().toISOString()
-    }
-];
+import { mockAnimalPosts } from '../mock_data/animalPosts';
 
 export default function Map() {
     const navigate = useNavigate();
@@ -65,6 +34,7 @@ export default function Map() {
             </div>
         `;
     };
+
 
     React.useEffect(() => {
         const loader = new Loader({

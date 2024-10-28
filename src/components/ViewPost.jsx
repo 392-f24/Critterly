@@ -1,21 +1,23 @@
-import React from 'react'
+import React from 'react';
+import { mockAnimalPosts } from '../mock_data/animalPosts';
+import styles from './ViewPost.module.css';
 
 export default function ViewPost() {
-    const post = {
-        image: '/dodobird.jpeg', // Replace with a valid image URL
-        caption: 'A pair of dodo birds.',
-        location: 'Johnson City, TN',
-      };
-    
-      return (
-        <div className="post-container">
-          <div className="post">
-            <img src={post.image} alt="Post" className="post-image" />
-            <div className="post-details">
-              <p className="post-caption">{post.caption}</p>
-              <p className="post-location">Location: {post.location}</p>
-            </div>
-          </div>
+    return (
+        <div className={styles.postContainer}>
+            {mockAnimalPosts.map(post => (
+                <div key={post.id} className={styles.post}>
+                    <img src={post.photo} alt={post.title} className={styles.postImage} />
+                    <div className={styles.postDetails}>
+                        <h2 className={styles.postTitle}>{post.title}</h2>
+                        <p className={styles.postDescription}>{post.description}</p>
+                        <p className={styles.postLocation}>Location: {post.address}</p>
+                        <p className={styles.postDate}>
+                            Posted: {new Date(post.date).toLocaleDateString()}
+                        </p>
+                    </div>
+                </div>
+            ))}
         </div>
-      );
+    );
 }
