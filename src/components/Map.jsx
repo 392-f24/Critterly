@@ -86,7 +86,7 @@ export default function Map() {
                                     const position = results[0].geometry.location;
                                     
                                     // Create marker
-                                    const marker = new google.maps.Marker({
+                                    const marker = new google.maps.marker.AdvancedMarkerElement({
                                         position: position,
                                         map: mapInstance,
                                         title: post.title

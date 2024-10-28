@@ -6,6 +6,7 @@ import Map from './components/Map';
 import ViewPost from './components/ViewPost';
 
 const App = () => {
+  
   return (
     <Router>
       <div className="min-h-screen">
