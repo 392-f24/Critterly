@@ -1,14 +1,9 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { FaMapMarkerAlt } from "react-icons/fa";
-import { storage, db, useAuthState } from "../utilities/firebase";
+import React, { useState } from "react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
 import { useNavigate } from 'react-router-dom';
-
+import { useAuthState } from "../utilities/firebase";
 import LocationInput from "./LocationInput";
-
 
 const CreatePost = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -17,23 +12,21 @@ const CreatePost = () => {
   const [user] = useAuthState();
   const navigate = useNavigate();
 
-
+  // Handle location select from the Google Places API
   const handleLocationSelect = (place) => {
     console.log('Selected place:', place);
-    setGeotag(place.formatted_address);
+    setGeotag(place.formatted_address); // Save the formatted address
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Check if the file is an image
       if (!file.type.startsWith("image/")) {
         alert("Please upload a valid image file.");
         return;
       }
-      // Create an object URL and set it to the state
       const imageUrl = URL.createObjectURL(file);
-      setSelectedImage({ file, url: imageUrl }); // Store both file and URL
+      setSelectedImage({ file, url: imageUrl });
     }
   };
 
@@ -41,40 +34,29 @@ const CreatePost = () => {
     if (!selectedImage || !user) return;
 
     try {
-      // Upload the image to Firebase Storage
       const imageRef = ref(storage, `posts/${Date.now()}_${selectedImage.file.name}`);
       await uploadBytes(imageRef, selectedImage.file);
-      console.log("Image uploaded successfully");
-
-      // Get the image URL
       const imageUrl = await getDownloadURL(imageRef);
-      console.log(user);
 
-    const postData = {
-      caption,
-      geotag,
-      imageUrl,
-      createdAt: new Date(),
-      userId: user.uid, // Use the logged-in user ID
-    };
-    console.log("Post Data:", postData); // Log the post data
+      const postData = {
+        caption,
+        geotag,
+        imageUrl,
+        createdAt: new Date(),
+        userId: user.uid,
+      };
 
-    // Save to Firestore
-    await setDoc(doc(db, "posts", Date.now().toString()), postData);
+      await setDoc(doc(db, "posts", Date.now().toString()), postData);
 
-      // Reset the form state
       setSelectedImage(null);
       setCaption("");
       setGeotag("");
-      //setSuggestions([]);
-
-      navigate("/"); // Redirect to home page
+      navigate("/");
 
     } catch (error) {
       console.error("Error uploading image or saving post:", error);
     }
   };
-
 
   return (
     <div style={styles.container}>
@@ -100,8 +82,6 @@ const CreatePost = () => {
           )}
         </div>
 
-        <button>Characterize the Image!</button>
-
         <div style={styles.inputGroup}>
           <label>Caption</label>
           <textarea
@@ -112,8 +92,8 @@ const CreatePost = () => {
           />
         </div>
 
+        {/* LocationInput component for geotagging */}
         <LocationInput onLocationSelect={handleLocationSelect} />
-        {/*use google maps autocomplete widget*/}
 
         <button
           onClick={handlePostSubmit}
@@ -127,7 +107,7 @@ const CreatePost = () => {
   );
 };
 
-// Add your styles here
+// Styles for the component
 const styles = {
   container: {
     padding: '20px',
@@ -162,38 +142,6 @@ const styles = {
   },
   inputGroup: {
     marginBottom: '10px',
-  },
-  geotagContainer: {
-    display: 'flex',
-    alignItems: 'center',
-  },
-  markerIcon: {
-    marginRight: '8px',
-  },
-  input: {
-    flex: 1,
-    padding: '10px',
-    border: '1px solid #ccc',
-    borderRadius: '4px',
-  },
-  suggestionList: {
-    listStyleType: 'none',
-    padding: 0,
-    margin: 0,
-    border: '1px solid #ccc',
-    borderRadius: '4px',
-    maxHeight: '200px',
-    overflowY: 'auto',
-    position: 'absolute',
-    backgroundColor: 'white',
-    zIndex: 10,
-  },
-  suggestionItem: {
-    padding: '10px',
-    cursor: 'pointer',
-    '&:hover': {
-      backgroundColor: '#f0f0f0',
-    },
   },
   button: {
     padding: '10px 15px',
