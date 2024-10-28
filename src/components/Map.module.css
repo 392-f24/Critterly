@@ -8,3 +8,13 @@ gmp-map {
     height: 100%;
     display: block;
 }
+
+button:hover {
+    background-color: #357ABD !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+}
+
+button:last-child:hover {
+    background-color: #5A6268 !important;
+}

@@ -160,12 +160,63 @@ export default function Map() {
                     <div id="map" style={{ width: '100%', height: '100%' }}></div>
                 )}
             </div>
-            <div style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 1000 }}>
-                <button onClick={Create_Post} style={{ marginRight: '10px' }}>
-                    <i className="fa-solid fa-plus"></i>Create
+            <div style={{ 
+                position: 'absolute', 
+                bottom: '20px', 
+                right: '20px', 
+                zIndex: 1000,
+                display: 'flex',
+                gap: '12px'
+            }}>
+                <button 
+                    onClick={Create_Post} 
+                    style={{
+                        backgroundColor: '#4A90E2',
+                        color: 'white',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        transition: 'all 0.2s ease-in-out',
+                        ':hover': {
+                            backgroundColor: '#357ABD',
+                            transform: 'translateY(-1px)',
+                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                        }
+                    }}
+                >
+                    <i className="fa-solid fa-plus" style={{ fontSize: '12px' }}></i>
+                    Create Post
                 </button>
-                <button onClick={View_Post}>
-                    View Post X
+                <button 
+                    onClick={View_Post}
+                    style={{
+                        backgroundColor: '#6C757D',
+                        color: 'white',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        transition: 'all 0.2s ease-in-out',
+                        ':hover': {
+                            backgroundColor: '#5A6268',
+                            transform: 'translateY(-1px)',
+                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                        }
+                    }}
+                >
+                    View Posts
                 </button>
             </div>
         </div>
