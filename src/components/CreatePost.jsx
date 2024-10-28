@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import { FaMapMarkerAlt, FaArrowLeft } from "react-icons/fa";
+import { storage, db, useAuthState } from "../utilities/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
-import { useNavigate } from 'react-router-dom';
-import { useAuthState } from "../utilities/firebase";
+import { useNavigate } from "react-router-dom";
 import LocationInput from "./LocationInput";
 
+// CreatePost component
 const CreatePost = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [caption, setCaption] = useState("");
@@ -12,10 +14,8 @@ const CreatePost = () => {
   const [user] = useAuthState();
   const navigate = useNavigate();
 
-  // Handle location select from the Google Places API
   const handleLocationSelect = (place) => {
-    console.log('Selected place:', place);
-    setGeotag(place.formatted_address); // Save the formatted address
+    setGeotag(place);
   };
 
   const handleImageChange = (e) => {
@@ -36,11 +36,12 @@ const CreatePost = () => {
     try {
       const imageRef = ref(storage, `posts/${Date.now()}_${selectedImage.file.name}`);
       await uploadBytes(imageRef, selectedImage.file);
+
       const imageUrl = await getDownloadURL(imageRef);
 
       const postData = {
         caption,
-        geotag,
+        geotag: "2145 Sheridan Rd, Evanston, IL 60208, USA", // hardcoded location
         imageUrl,
         createdAt: new Date(),
         userId: user.uid,
@@ -51,8 +52,8 @@ const CreatePost = () => {
       setSelectedImage(null);
       setCaption("");
       setGeotag("");
-      navigate("/");
 
+      navigate("/");
     } catch (error) {
       console.error("Error uploading image or saving post:", error);
     }
@@ -60,8 +61,16 @@ const CreatePost = () => {
 
   return (
     <div style={styles.container}>
+      <button
+        onClick={() => navigate("/")}
+        style={styles.backButton}
+      >
+        <FaArrowLeft style={{ marginRight: "8px" }} />
+        Back to Map
+      </button>
+
       <div style={styles.formContainer}>
-        <h2>Upload a Picture</h2>
+        <h2>Create a New Post</h2>
 
         <input
           type="file"
@@ -92,7 +101,6 @@ const CreatePost = () => {
           />
         </div>
 
-        {/* LocationInput component for geotagging */}
         <LocationInput onLocationSelect={handleLocationSelect} />
 
         <button
@@ -107,50 +115,77 @@ const CreatePost = () => {
   );
 };
 
-// Styles for the component
+// Add your styles here
 const styles = {
   container: {
-    padding: '20px',
+    padding: "20px",
+    backgroundColor: "#f5f5f5",
+    minHeight: "100vh",
   },
   formContainer: {
-    maxWidth: '500px',
-    margin: '0 auto',
-    padding: '20px',
-    backgroundColor: '#fff',
-    borderRadius: '8px',
-    boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+    maxWidth: "500px",
+    margin: "0 auto",
+    padding: "20px",
+    backgroundColor: "#fff",
+    borderRadius: "8px",
+    boxShadow: "0 0 10px rgba(0,0,0,0.1)",
   },
   fileInput: {
-    marginBottom: '10px',
+    marginBottom: "10px",
   },
   imageBox: {
-    width: '100%',
-    height: '400px',
-    backgroundColor: '#000',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: '10px',
+    width: "100%",
+    height: "300px",
+    backgroundColor: "#e0e0e0",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: "10px",
+    borderRadius: "8px",
   },
   imagePreview: {
-    maxHeight: '100%',
-    maxWidth: '100%',
+    maxHeight: "100%",
+    maxWidth: "100%",
+    borderRadius: "8px",
   },
   imagePlaceholder: {
-    color: '#fff',
-    textAlign: 'center',
+    color: "#666",
+    textAlign: "center",
   },
   inputGroup: {
-    marginBottom: '10px',
+    marginBottom: "10px",
+  },
+  textarea: {
+    width: "100%",
+    padding: "10px",
+    borderRadius: "4px",
+    border: "1px solid #ccc",
+    fontSize: "14px",
+    resize: "vertical",
+    minHeight: "100px",
   },
   button: {
-    padding: '10px 15px',
-    backgroundColor: '#007bff',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    marginTop: '10px',
+    padding: "10px 15px",
+    backgroundColor: "#007bff",
+    color: "#fff",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    marginTop: "10px",
+    fontSize: "16px",
+  },
+  backButton: {
+    display: "flex",
+    alignItems: "center",
+    padding: "10px 15px",
+    backgroundColor: "#28a745",
+    color: "#fff",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    marginBottom: "20px",
+    textDecoration: "none",
+    fontSize: "16px",
   },
 };
 
