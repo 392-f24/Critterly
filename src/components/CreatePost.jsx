@@ -1,25 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FaMapMarkerAlt } from "react-icons/fa";
-import { storage, db } from "../utilities/firebase";
+import { storage, db, useAuthState } from "../utilities/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
 import LocationSearch from "./LocationSearch";
 import { getAuth } from "firebase/auth";
+import { useNavigate } from 'react-router-dom';
 
 
 // validate users before allowing them to post
-const auth = getAuth();
-const user = auth.currentUser;
+//const auth = getAuth();
+//const user = auth.currentUser;
 
 const CreatePost = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [caption, setCaption] = useState("");
   const [geotag, setGeotag] = useState("");
   const [suggestions, setSuggestions] = useState([]);
-  
-  const GOOGLE_PLACES_API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY ; // Replace with your API key
+  const [user] = useAuthState();
+  const navigate = useNavigate();
 
+  const GOOGLE_PLACES_API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
+  
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -36,7 +39,7 @@ const CreatePost = () => {
   };
 
   const handlePostSubmit = async () => {
-    if (!selectedImage) return;
+    if (!selectedImage || !user) return;
 
     try {
       // Upload the image to Firebase Storage
@@ -46,28 +49,35 @@ const CreatePost = () => {
 
       // Get the image URL
       const imageUrl = await getDownloadURL(imageRef);
-      
-      // Save post data to Firestore
-      await setDoc(doc(db, "posts", Date.now().toString()), {
-        caption,
-        geotag,
-        imageUrl,
-        createdAt: new Date(),
-        userId: "USER_ID_HERE", // Replace with the actual user ID
-      });
-      console.log("Post saved successfully");
+      console.log(user);
+
+    const postData = {
+      caption,
+      geotag: "2145 Sheridan Rd, Evanston, IL 60208, USA", // hardcoded location
+      imageUrl,
+      createdAt: new Date(),
+      userId: user.uid, // Use the logged-in user ID
+    };
+    console.log("Post Data:", postData); // Log the post data
+
+    // Save to Firestore
+    await setDoc(doc(db, "posts", Date.now().toString()), postData);
+
 
       // Reset the form state
       setSelectedImage(null);
       setCaption("");
       setGeotag("");
       setSuggestions([]);
+
+      navigate("/"); // Redirect to home page
+
     } catch (error) {
       console.error("Error uploading image or saving post:", error);
     }
   };
 
-
+  /*
   const handleGeotagChange = (e) => {
     const value = e.target.value;
     setGeotag(value);
@@ -78,6 +88,7 @@ const CreatePost = () => {
     setGeotag(suggestion.description);
     setSuggestions([]); // Clear suggestions after selection
   };
+  */
 
   return (
     <div style={styles.container}>

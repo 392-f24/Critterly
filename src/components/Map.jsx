@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import Navigation from './Navigation';
 
 export default function Map() {
     const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function Map() {
 
     return (
         <div>Map
+            <Navigation />
             <button onClick={Create_Post}>
                 <i className="fa-solid fa-plus"></i>Create
             </button>
