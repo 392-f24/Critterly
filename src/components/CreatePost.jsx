@@ -4,9 +4,10 @@ import { FaMapMarkerAlt } from "react-icons/fa";
 import { storage, db, useAuthState } from "../utilities/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
-import LocationSearch from "./LocationSearch";
 import { getAuth } from "firebase/auth";
 import { useNavigate } from 'react-router-dom';
+
+import LocationInput from "./LocationInput";
 
 
 // validate users before allowing them to post
@@ -17,12 +18,14 @@ const CreatePost = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [caption, setCaption] = useState("");
   const [geotag, setGeotag] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
   const [user] = useAuthState();
   const navigate = useNavigate();
 
-  const GOOGLE_PLACES_API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
-  
+
+  const handleLocationSelect = (place) => {
+    console.log('Selected place:', place);
+    setGeotag(place);
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -68,7 +71,7 @@ const CreatePost = () => {
       setSelectedImage(null);
       setCaption("");
       setGeotag("");
-      setSuggestions([]);
+      //setSuggestions([]);
 
       navigate("/"); // Redirect to home page
 
@@ -126,12 +129,12 @@ const CreatePost = () => {
           />
         </div>
 
-        <h3>Location:</h3>
-        {/*<LocationSearch />*/}
+        <LocationInput onLocationSelect={handleLocationSelect} />
+        {/*use google maps autocomplete widget*/}
 
         <button
           onClick={handlePostSubmit}
-          disabled={!selectedImage || !caption}
+          disabled={!selectedImage || !caption || !location}
           style={styles.button}
         >
           Post
