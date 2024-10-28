@@ -55,3 +55,9 @@
     color: #888;
     margin: 0;
 }
+
+button:hover {
+    background-color: #357ABD !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+}
