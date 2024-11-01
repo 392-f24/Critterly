@@ -25,38 +25,55 @@ const CreatePost = () => {
   };
 
   const handlePostSubmit = async () => {
-    if (!selectedImage || !user) return;
+    if (!postId || !user) return; // Ensure postId is set
 
     try {
-      const imageRef = ref(storage, `posts/${Date.now()}_${selectedImage.file.name}`);
-      await uploadBytes(imageRef, selectedImage.file);
+      const postRef = doc(db, "posts", postId);
 
-      const imageUrl = await getDownloadURL(imageRef);
-
-      const postData = {
-        caption,
-        location,
-        imageUrl,
-        createdAt: new Date(),
-        userId: user.uid,
-      };
-
-      await setDoc(doc(db, "posts", Date.now().toString()), postData);
+      // Update the existing post with the final caption and geotag
+      await setDoc(postRef, { caption, geotag: location }, { merge: true });
 
       setSelectedImage(null);
       setCaption("");
       setLocation("");
+      setPostId(null); // Clear the postId after submitting
 
       navigate("/");
     } catch (error) {
-      console.error("Error uploading image or saving post:", error);
+      console.error("Error submitting post:", error);
     }
   };
 
-  const handleCharacterizeImage = () => {
-    // Handle image characterization logic here
-    alert("Characterizing the image...");
+
+  const [postId, setPostId] = useState(null); // Add this state to store the document ID
+
+  const handleCharacterizeImage = async () => {
+    if (!selectedImage || !user) return;
+
+    try {
+      // Step 1: Upload Image to Firebase and get URL
+      const imageRef = ref(storage, `posts/${Date.now()}_${selectedImage.file.name}`);
+      await uploadBytes(imageRef, selectedImage.file);
+      const imageUrl = await getDownloadURL(imageRef);
+
+      // Step 2: Create an initial post with empty caption and geotag
+      const postRef = doc(db, "posts", Date.now().toString()); // Generate a unique ID for the post
+      const initialPostData = {
+        caption: "", // Empty caption initially
+        geotag: "",  // Empty geotag initially
+        imageUrl,
+        createdAt: new Date(),
+        userId: user.uid,
+      };
+      await setDoc(postRef, initialPostData);
+
+      setPostId(postRef.id); // Store the document ID for later updates
+      alert("Image characterized. You can now submit after generating a caption.");
+    } catch (error) {
+      console.error("Error characterizing image:", error);
+    }
   };
+
 
   return (
     <div style={styles.container}>
