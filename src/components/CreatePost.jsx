@@ -4,6 +4,7 @@ import { storage, db, useAuthState } from "../utilities/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import callGPT from "../utilities/aicall.js";
 
 const CreatePost = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -56,10 +57,13 @@ const CreatePost = () => {
       await uploadBytes(imageRef, selectedImage.file);
       const imageUrl = await getDownloadURL(imageRef);
 
+      // Call GPT API to generate caption based on the image URL
+      const generatedCaption = await callGPT(imageUrl); // Await the result of callGPT
+
       // Step 2: Create an initial post with empty caption and geotag
       const postRef = doc(db, "posts", Date.now().toString()); // Generate a unique ID for the post
       const initialPostData = {
-        caption: "", // Empty caption initially
+        caption: generatedCaption, // Set the caption here
         geotag: "",  // Empty geotag initially
         imageUrl,
         createdAt: new Date(),
@@ -67,12 +71,15 @@ const CreatePost = () => {
       };
       await setDoc(postRef, initialPostData);
 
+      // Step 3: Update the component's state with the generated caption
+      setCaption(generatedCaption); // Update the caption state
       setPostId(postRef.id); // Store the document ID for later updates
       alert("Image characterized. You can now submit after generating a caption.");
     } catch (error) {
       console.error("Error characterizing image:", error);
     }
   };
+
 
 
   return (
