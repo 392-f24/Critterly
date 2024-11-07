@@ -6,7 +6,7 @@ import Navigation from './Navigation';
 import styles from './Map.module.css';
 import { mockAnimalPosts } from '../mock_data/animalPosts';
 
-export default function Map() {
+export default function MapComponent() {  // Renamed from Map to MapComponent
     const navigate = useNavigate();
     const mapRef = React.useRef(null);
     const [mapLoaded, setMapLoaded] = React.useState(false);
@@ -24,17 +24,17 @@ export default function Map() {
         navigate('/view_post');
     };
 
-    const createInfoWindowContent = (post) => {
+    const createSinglePostContent = (post) => {
         return `
-            <div style="width: 250px; display: flex; flex-direction: column; align-items: center;">
+            <div style="width: 250px;">
                 <div style="width: 100%; max-height: 150px; display: flex; justify-content: center; align-items: center; overflow: hidden;">
                     <img src="${post.photo}" 
                         alt="${post.title}" 
                         style="max-width: 100%;
-                                max-height: 150px;
-                                object-fit: contain;
-                                display: block;
-                                margin: 0 auto;"
+                               max-height: 150px;
+                               object-fit: contain;
+                               display: block;
+                               margin: 0 auto;"
                     />
                 </div>
                 <div style="padding: 8px; width: 100%;">
@@ -44,6 +44,21 @@ export default function Map() {
                         Posted: ${new Date(post.date).toLocaleDateString()}
                     </p>
                 </div>
+            </div>
+        `;
+    };
+
+    const createMultiplePostsContent = (posts) => {
+        return `
+            <div style="width: 250px; max-height: 400px; overflow-y: auto;">
+                ${posts.map((post, index) => `
+                    <div style="
+                        padding: 10px;
+                        ${index !== 0 ? 'border-top: 1px solid #eee;' : ''}
+                    ">
+                        ${createSinglePostContent(post)}
+                    </div>
+                `).join('')}
             </div>
         `;
     };
@@ -77,10 +92,10 @@ export default function Map() {
                             lng: centerLocation.lng() 
                         });
 
-                        // Create array to store markers
-                        const markersArray = [];
+                        // Create a location hash map (using an object instead of Map)
+                        const locationHashMap = {};
 
-                        // Create markers and info windows for each post
+                        // Geocode all posts and group them by location
                         for (const post of mockAnimalPosts) {
                             try {
                                 const results = await new Promise((resolve, reject) => {
@@ -94,42 +109,53 @@ export default function Map() {
                                 });
 
                                 const position = results[0].geometry.location;
+                                const locationKey = `${position.lat()},${position.lng()}`;
                                 
-                                // Create marker
-                                const marker = new google.maps.marker.AdvancedMarkerElement({
-                                    position: position,
-                                    map: mapInstance,
-                                    title: post.title
-                                });
-
-                                // Create info window
-                                const infoWindow = new google.maps.InfoWindow({
-                                    content: createInfoWindowContent(post),
-                                    maxWidth: 320
-                                });
-
-                                // Add click listener to marker
-                                marker.addListener('click', () => {
-                                    // Close all other info windows first
-                                    infoWindows.forEach(iw => iw.close());
-                                    infoWindow.open({
-                                        anchor: marker,
-                                        map: mapInstance
-                                    });
-                                });
-
-                                // Store info window reference
-                                setInfoWindows(prev => [...prev, infoWindow]);
-                                markersArray.push(marker);
+                                if (!locationHashMap[locationKey]) {
+                                    locationHashMap[locationKey] = {
+                                        position,
+                                        posts: []
+                                    };
+                                }
+                                locationHashMap[locationKey].posts.push(post);
 
                             } catch (error) {
                                 console.error(`Geocoding failed for ${post.address}:`, error);
                             }
                         }
 
-                        setMarkers(markersArray);
+                        const markersArray = [];
+                        const infoWindowsArray = [];
 
-                        // Initialize MarkerClusterer with default options
+                        // Create markers for each unique location
+                        Object.values(locationHashMap).forEach(({ position, posts }) => {
+                            const marker = new google.maps.marker.AdvancedMarkerElement({
+                                position: position,
+                                map: mapInstance,
+                                title: posts.length > 1 ? `${posts.length} posts at this location` : posts[0].title
+                            });
+
+                            const infoWindow = new google.maps.InfoWindow({
+                                content: posts.length > 1 ? createMultiplePostsContent(posts) : createSinglePostContent(posts[0]),
+                                maxWidth: 320
+                            });
+
+                            marker.addListener('click', () => {
+                                infoWindowsArray.forEach(iw => iw.close());
+                                infoWindow.open({
+                                    anchor: marker,
+                                    map: mapInstance
+                                });
+                            });
+
+                            markersArray.push(marker);
+                            infoWindowsArray.push(infoWindow);
+                        });
+
+                        setMarkers(markersArray);
+                        setInfoWindows(infoWindowsArray);
+
+                        // Initialize MarkerClusterer
                         const clusterer = new MarkerClusterer({
                             map: mapInstance,
                             markers: markersArray,
