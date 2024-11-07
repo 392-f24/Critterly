@@ -1,27 +1,66 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockAnimalPosts } from '../mock_data/animalPosts';
+import { db } from '../utilities/firebase';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+//import { mockAnimalPosts } from '../mock_data/animalPosts';
 import styles from './ViewPost.module.css';
 
 export default function ViewPost() {
     const navigate = useNavigate();
+    const [posts, setPosts] = useState([]);
+
+    // fetch post info on load
+    useEffect(() => {
+        const fetchPosts = async () => {
+            try {
+                const postsCollection = collection(db, 'posts');
+                const postSnapshot = await getDocs(postsCollection);
+                const postData = postSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                // const userIds = [...new Set(postData.map(post => post.userId))];
+                // const userPromises = userIds.map(async (userId) => {
+                //    const userDoc = await getDoc(doc(db, 'users', userId));
+                //    return {userId, ...userDoc.data() }});
+
+                // const users = await Promise.all(userPromises);
+                // const userMap = Object.fromEntries(users.map((user) => [user.userId, user]));
+
+                // const postsANDuserData = postData.map(post => ({
+                //    ...post,
+                //    userName: usersMap[post.userId]?.name || 'Unknown User'}));
+                
+                // setPosts(postsANDuserData);
+                setPosts(postData);
+            }
+            catch(error) {
+                console.error("Error fetching posts from firestore:", error);
+            }
+        };
+        fetchPosts();
+    }, []);
 
     const Go_To_Map = () => {
         navigate('/');
     };
 
+    // TO DO: fix display to show more than just image and caption
+    // add description and other elements to table
+    // fetch user name from userid
     return (
         <div>
             <div className={styles.postContainer}>
-                {mockAnimalPosts.map(post => (
+                {posts.map(post => (
                     <div key={post.id} className={styles.post}>
-                        <img src={post.photo} alt={post.title} className={styles.postImage} />
+                        <img src={post.imageUrl} alt={post.caption} className={styles.postImage} />
                         <div className={styles.postDetails}>
-                            <h2 className={styles.postTitle}>{post.title}</h2>
-                            <p className={styles.postDescription}>{post.description}</p>
-                            <p className={styles.postLocation}>Location: {post.address}</p>
+                            <h2 className={styles.postTitle}>{post.caption}</h2>
+                            <p className={styles.postDescription}>{post.caption}</p>
+                            <p className={styles.postLocation}>Location: {post.geotag}</p>
                             <p className={styles.postDate}>
-                                Posted: {new Date(post.date).toLocaleDateString()}
+                                Posted: {new Date(post.createdAt).toLocaleDateString()}
                             </p>
                         </div>
                     </div>
