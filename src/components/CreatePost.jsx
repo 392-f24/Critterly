@@ -11,7 +11,7 @@ const CreatePost = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [caption, setCaption] = useState("");
   const [location, setLocation] = useState("");
-  const [characterization, setCharacterization] = useState([]);
+  const [characterization, setCharacterization] = useState(null);
   const [user] = useAuthState();
   const navigate = useNavigate();
 
@@ -67,7 +67,7 @@ const CreatePost = () => {
       // Step 2: Create an initial post with empty caption and geotag
       const postRef = doc(db, "posts", Date.now().toString()); // Generate a unique ID for the post
       const initialPostData = {
-        caption, // Set the caption here
+        caption, 
         geotag: "",  // Empty geotag initially
         imageUrl,
         characterization: generateCharacterization,
@@ -79,7 +79,7 @@ const CreatePost = () => {
       // Step 3: Update the component's state with the generated caption
       setCharacterization(generateCharacterization); // Update the caption state
       setPostId(postRef.id); // Store the document ID for later updates
-      alert("Image characterized. You can now submit after generating a caption.");
+      //alert("Image characterized. You can now submit after generating a caption.");
     } catch (error) {
       console.error("Error characterizing image:", error);
     }
@@ -243,6 +243,17 @@ const styles = {
     alignItems: "center",
     marginBottom: "15px",
     fontSize: "16px",
+  },
+  characterizationBox: {
+    marginTop: "16px",
+    padding: "8px",
+    backgroundColor: "#f1f1f1",
+    borderRadius: "4px",
+    border: "1px solid #ddd",
+  },
+  characterizationText: {
+    margin: 0,
+    color: "#333",
   },
   backButton: {
     display: "flex",
