@@ -4,9 +4,10 @@ import './App.css';
 import CreatePost from './components/CreatePost';
 import Map from './components/Map';
 import ViewPost from './components/ViewPost';
+import callGPT from './utilities/aicall';
 
 const App = () => {
-  
+
   return (
     <Router>
       <div className="min-h-screen">
@@ -27,5 +28,19 @@ const App = () => {
     </Router>
   );
 };
+
+// function App() {
+//     const testGPTCall = async () => {
+//         const response = await callGPT('Tell me a fun fact about space.');
+//         console.log('GPT Response:', response);
+//     };
+//
+//     return (
+//         <div>
+//             <h1>Test GPT API Call</h1>
+//             <button onClick={testGPTCall}>Ask GPT</button>
+//         </div>
+//     );
+// }
 
 export default App;

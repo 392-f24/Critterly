@@ -1,22 +1,17 @@
 import React, { useState } from "react";
-import { FaMapMarkerAlt, FaArrowLeft, FaMagic } from "react-icons/fa";
+import { FaArrowLeft, FaMagic } from "react-icons/fa";
 import { storage, db, useAuthState } from "../utilities/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import LocationInput from "./LocationInput";
+import callGPT from "../utilities/aicall.js";
 
-// CreatePost component
 const CreatePost = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [caption, setCaption] = useState("");
-  const [geotag, setGeotag] = useState("");
+  const [location, setLocation] = useState("");
   const [user] = useAuthState();
   const navigate = useNavigate();
-
-  const handleLocationSelect = (place) => {
-    setGeotag(place);
-  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -31,38 +26,61 @@ const CreatePost = () => {
   };
 
   const handlePostSubmit = async () => {
+    if (!postId || !user) return; // Ensure postId is set
+
+    try {
+      const postRef = doc(db, "posts", postId);
+
+      // Update the existing post with the final caption and geotag
+      await setDoc(postRef, { caption, geotag: location }, { merge: true });
+
+      setSelectedImage(null);
+      setCaption("");
+      setLocation("");
+      setPostId(null); // Clear the postId after submitting
+
+      navigate("/");
+    } catch (error) {
+      console.error("Error submitting post:", error);
+    }
+  };
+
+
+  const [postId, setPostId] = useState(null); // Add this state to store the document ID
+
+  const handleCharacterizeImage = async () => {
     if (!selectedImage || !user) return;
 
     try {
+      // Step 1: Upload Image to Firebase and get URL
       const imageRef = ref(storage, `posts/${Date.now()}_${selectedImage.file.name}`);
       await uploadBytes(imageRef, selectedImage.file);
-
       const imageUrl = await getDownloadURL(imageRef);
 
-      const postData = {
-        caption,
-        geotag: "2145 Sheridan Rd, Evanston, IL 60208, USA", // hardcoded location
+      // Call GPT API to generate caption based on the image URL
+      const generatedCaption = await callGPT(imageUrl); // Await the result of callGPT
+
+      // Step 2: Create an initial post with empty caption and geotag
+      const postRef = doc(db, "posts", Date.now().toString()); // Generate a unique ID for the post
+      const initialPostData = {
+        caption: generatedCaption, // Set the caption here
+        geotag: "",  // Empty geotag initially
         imageUrl,
         createdAt: new Date(),
         userId: user.uid,
       };
+      await setDoc(postRef, initialPostData);
 
-      await setDoc(doc(db, "posts", Date.now().toString()), postData);
-
-      setSelectedImage(null);
-      setCaption("");
-      setGeotag("");
-
-      navigate("/");
+      // Step 3: Update the component's state with the generated caption
+      setCaption(generatedCaption); // Update the caption state
+      setPostId(postRef.id); // Store the document ID for later updates
+      alert("Image characterized. You can now submit after generating a caption.");
     } catch (error) {
-      console.error("Error uploading image or saving post:", error);
+      console.error("Error characterizing image:", error);
     }
   };
 
-  const handleCharacterizeImage = () => {
-    // Handle image characterization logic here
-    alert("Characterizing the image...");
-  };
+
 
   return (
     <div style={styles.container}>
@@ -114,11 +132,20 @@ const CreatePost = () => {
           />
         </div>
 
-        <LocationInput onLocationSelect={handleLocationSelect} />
+        <div style={styles.inputGroup}>
+          <label>Location</label>
+          <input
+            type="text"
+            placeholder="Enter location..."
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            style={styles.input}
+          />
+        </div>
 
         <button
           onClick={handlePostSubmit}
-          disabled={!selectedImage || !caption || !geotag}
+          disabled={!selectedImage || !caption || !location}
           style={styles.button}
         >
           Post
@@ -128,7 +155,6 @@ const CreatePost = () => {
   );
 };
 
-// Add your styles here
 const styles = {
   container: {
     padding: "20px",
@@ -167,6 +193,13 @@ const styles = {
   },
   inputGroup: {
     marginBottom: "10px",
+  },
+  input: {
+    width: "100%",
+    padding: "10px",
+    borderRadius: "4px",
+    border: "1px solid #ccc",
+    fontSize: "14px",
   },
   textarea: {
     width: "100%",
