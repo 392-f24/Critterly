@@ -17,7 +17,7 @@ export const mockAnimalPosts = [
         title: 'Duck Family',
         description: 'A mother duck with ducklings near the rocks! So cute!',
         photo: duck,
-        address: '1999 Campus Drive, Evanston, IL 60208', // Lakefill area
+        address: '1970 Campus Drive, Evanston, IL 60208', // Lakefill area
         date: new Date().toISOString()
     },
     {

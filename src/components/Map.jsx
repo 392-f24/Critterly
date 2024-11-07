@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader } from '@googlemaps/js-api-loader';
+import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import Navigation from './Navigation';
 import styles from './Map.module.css';
 import { mockAnimalPosts } from '../mock_data/animalPosts';
@@ -12,18 +13,17 @@ export default function Map() {
     const [coordinates, setCoordinates] = React.useState(null);
     const [map, setMap] = React.useState(null);
     const [infoWindows, setInfoWindows] = React.useState([]);
+    const [markers, setMarkers] = React.useState([]);
+    const [markerClusterer, setMarkerClusterer] = React.useState(null);
 
     const Create_Post = () => {
-        navigate('/create_post'); 
+        navigate('/create_post');
     };
 
     const View_Post = () => {
-        navigate('/view_post'); 
+        navigate('/view_post');
     };
 
-    // Function to create content for info windows
-    // Function to create content for info windows
-// Function to create content for info windows
     const createInfoWindowContent = (post) => {
         return `
             <div style="width: 250px; display: flex; flex-direction: column; align-items: center;">
@@ -47,7 +47,6 @@ export default function Map() {
             </div>
         `;
     };
-    
 
     React.useEffect(() => {
         const loader = new Loader({
@@ -57,10 +56,9 @@ export default function Map() {
         });
 
         loader.load()
-            .then((google) => {
+            .then(async (google) => {
                 const geocoder = new google.maps.Geocoder();
                 
-                // Initialize the map
                 const mapInstance = new google.maps.Map(mapRef.current, {
                     zoom: 15,
                     mapId: "DEMO_MAP_ID"
@@ -70,7 +68,7 @@ export default function Map() {
                 // Set center to Northwestern
                 geocoder.geocode({
                     address: "633 Clark St, Evanston, IL 60208"
-                }, (results, status) => {
+                }, async (results, status) => {
                     if (status === "OK") {
                         const centerLocation = results[0].geometry.location;
                         mapInstance.setCenter(centerLocation);
@@ -79,42 +77,69 @@ export default function Map() {
                             lng: centerLocation.lng() 
                         });
 
+                        // Create array to store markers
+                        const markersArray = [];
+
                         // Create markers and info windows for each post
-                        mockAnimalPosts.forEach(post => {
-                            geocoder.geocode({ address: post.address }, (results, status) => {
-                                if (status === "OK") {
-                                    const position = results[0].geometry.location;
-                                    
-                                    // Create marker
-                                    const marker = new google.maps.marker.AdvancedMarkerElement({
-                                        position: position,
-                                        map: mapInstance,
-                                        title: post.title
+                        for (const post of mockAnimalPosts) {
+                            try {
+                                const results = await new Promise((resolve, reject) => {
+                                    geocoder.geocode({ address: post.address }, (results, status) => {
+                                        if (status === "OK") {
+                                            resolve(results);
+                                        } else {
+                                            reject(status);
+                                        }
                                     });
+                                });
 
-                                    // Create info window
-                                    const infoWindow = new google.maps.InfoWindow({
-                                        content: createInfoWindowContent(post),
-                                        maxWidth: 320
+                                const position = results[0].geometry.location;
+                                
+                                // Create marker
+                                const marker = new google.maps.marker.AdvancedMarkerElement({
+                                    position: position,
+                                    map: mapInstance,
+                                    title: post.title
+                                });
+
+                                // Create info window
+                                const infoWindow = new google.maps.InfoWindow({
+                                    content: createInfoWindowContent(post),
+                                    maxWidth: 320
+                                });
+
+                                // Add click listener to marker
+                                marker.addListener('click', () => {
+                                    // Close all other info windows first
+                                    infoWindows.forEach(iw => iw.close());
+                                    infoWindow.open({
+                                        anchor: marker,
+                                        map: mapInstance
                                     });
+                                });
 
-                                    // Add click listener to marker
-                                    marker.addListener('click', () => {
-                                        // Close all other info windows first
-                                        infoWindows.forEach(iw => iw.close());
-                                        infoWindow.open({
-                                            anchor: marker,
-                                            map: mapInstance
-                                        });
-                                    });
+                                // Store info window reference
+                                setInfoWindows(prev => [...prev, infoWindow]);
+                                markersArray.push(marker);
 
-                                    // Store info window reference
-                                    setInfoWindows(prev => [...prev, infoWindow]);
-                                } else {
-                                    console.error(`Geocoding failed for ${post.address}:`, status);
-                                }
-                            });
+                            } catch (error) {
+                                console.error(`Geocoding failed for ${post.address}:`, error);
+                            }
+                        }
+
+                        setMarkers(markersArray);
+
+                        // Initialize MarkerClusterer with default options
+                        const clusterer = new MarkerClusterer({
+                            map: mapInstance,
+                            markers: markersArray,
+                            maxZoom: 15,
+                            gridSize: 60,
+                            minimumClusterSize: 2
                         });
+
+                        setMarkerClusterer(clusterer);
+
                     } else {
                         console.error("Geocoding failed:", status);
                         const fallbackCoords = { lat: 42.0565, lng: -87.6753 };
@@ -131,6 +156,9 @@ export default function Map() {
 
         // Cleanup function
         return () => {
+            if (markerClusterer) {
+                markerClusterer.clearMarkers();
+            }
             infoWindows.forEach(infoWindow => infoWindow.close());
         };
     }, []);
