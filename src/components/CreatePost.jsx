@@ -7,9 +7,11 @@ import { useNavigate } from "react-router-dom";
 import callGPT from "../utilities/aicall.js";
 
 const CreatePost = () => {
+  // fields for 
   const [selectedImage, setSelectedImage] = useState(null);
   const [caption, setCaption] = useState("");
   const [location, setLocation] = useState("");
+  const [characterization, setCharacterization] = useState([]);
   const [user] = useAuthState();
   const navigate = useNavigate();
 
