@@ -39,6 +39,7 @@ const CreatePost = () => {
       setSelectedImage(null);
       setCaption("");
       setLocation("");
+      setCharacterization([]);
       setPostId(null); // Clear the postId after submitting
 
       navigate("/");
@@ -60,21 +61,23 @@ const CreatePost = () => {
       const imageUrl = await getDownloadURL(imageRef);
 
       // Call GPT API to generate caption based on the image URL
-      const generatedCaption = await callGPT(imageUrl); // Await the result of callGPT
+      const generateCharacterization = await callGPT(imageUrl);
+      //const generatedCaption = await callGPT(imageUrl); // Await the result of callGPT
 
       // Step 2: Create an initial post with empty caption and geotag
       const postRef = doc(db, "posts", Date.now().toString()); // Generate a unique ID for the post
       const initialPostData = {
-        caption: generatedCaption, // Set the caption here
+        caption, // Set the caption here
         geotag: "",  // Empty geotag initially
         imageUrl,
+        characterization: generateCharacterization,
         createdAt: new Date(),
         userId: user.uid,
       };
       await setDoc(postRef, initialPostData);
 
       // Step 3: Update the component's state with the generated caption
-      setCaption(generatedCaption); // Update the caption state
+      setCharacterization(generateCharacterization); // Update the caption state
       setPostId(postRef.id); // Store the document ID for later updates
       alert("Image characterized. You can now submit after generating a caption.");
     } catch (error) {
@@ -116,6 +119,13 @@ const CreatePost = () => {
           )}
         </div>
 
+        {/* Characterization Display (non-editable) */}
+        {characterization && (
+          <div style={styles.characterizationBox}>
+            <label>Characterization:</label>
+            <p style={styles.characterizationText}>{characterization}</p>
+          </div>
+        )}
         <button
           onClick={handleCharacterizeImage}
           style={styles.characterizeButton}
