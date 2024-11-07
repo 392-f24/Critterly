@@ -2,11 +2,12 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader } from '@googlemaps/js-api-loader';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
+import { db } from '../utilities/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 import Navigation from './Navigation';
 import styles from './Map.module.css';
-import { mockAnimalPosts } from '../mock_data/animalPosts';
 
-export default function MapComponent() {  // Renamed from Map to MapComponent
+export default function MapComponent() {
     const navigate = useNavigate();
     const mapRef = React.useRef(null);
     const [mapLoaded, setMapLoaded] = React.useState(false);
@@ -15,6 +16,7 @@ export default function MapComponent() {  // Renamed from Map to MapComponent
     const [infoWindows, setInfoWindows] = React.useState([]);
     const [markers, setMarkers] = React.useState([]);
     const [markerClusterer, setMarkerClusterer] = React.useState(null);
+    const [posts, setPosts] = React.useState([]);
 
     const Create_Post = () => {
         navigate('/create_post');
@@ -25,23 +27,29 @@ export default function MapComponent() {  // Renamed from Map to MapComponent
     };
 
     const createSinglePostContent = (post) => {
+        const date = post.createdAt ? new Date(post.createdAt.toDate()).toLocaleDateString("en-US", {
+            month: "2-digit",
+            day: "2-digit",
+            year: "numeric"
+        }) : "Date not available";
+
         return `
-            <div style="width: 250px;">
-                <div style="width: 100%; max-height: 150px; display: flex; justify-content: center; align-items: center; overflow: hidden;">
-                    <img src="${post.photo}" 
-                        alt="${post.title}" 
+            <div style="width: 250px; display: flex; flex-direction: column; align-items: center;">
+                <div style="width: 100%; max-height: 150px; display: flex; justify-content: center; align-items: center; overflow: hidden; margin-bottom: 8px;">
+                    <img src="${post.imageUrl}" 
+                        alt="${post.caption || 'Post image'}" 
                         style="max-width: 100%;
                                max-height: 150px;
                                object-fit: contain;
                                display: block;
                                margin: 0 auto;"
+                        onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=Image+Not+Found';"
                     />
                 </div>
                 <div style="padding: 8px; width: 100%;">
-                    <h3 style="margin: 6px 0; color: #333; font-size: 16px;">${post.title}</h3>
-                    <p style="margin: 6px 0; color: #666; font-size: 14px;">${post.description}</p>
+                    <h3 style="margin: 6px 0; color: #333; font-size: 16px;">${post.caption || 'No caption'}</h3>
                     <p style="margin: 4px 0; color: #888; font-size: 12px;">
-                        Posted: ${new Date(post.date).toLocaleDateString()}
+                        Posted: ${date}
                     </p>
                 </div>
             </div>
@@ -64,6 +72,25 @@ export default function MapComponent() {  // Renamed from Map to MapComponent
     };
 
     React.useEffect(() => {
+        const fetchPosts = async () => {
+            try {
+                const postsCollection = collection(db, 'posts');
+                const postSnapshot = await getDocs(postsCollection);
+                const postData = postSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                setPosts(postData);
+            } catch (error) {
+                console.error("Error fetching posts:", error);
+            }
+        };
+        fetchPosts();
+    }, []);
+
+    React.useEffect(() => {
+        if (posts.length === 0) return;
+
         const loader = new Loader({
             apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
             version: "beta",
@@ -92,14 +119,14 @@ export default function MapComponent() {  // Renamed from Map to MapComponent
                             lng: centerLocation.lng() 
                         });
 
-                        // Create a location hash map (using an object instead of Map)
+                        // Create a location hash map
                         const locationHashMap = {};
 
                         // Geocode all posts and group them by location
-                        for (const post of mockAnimalPosts) {
+                        for (const post of posts) {
                             try {
                                 const results = await new Promise((resolve, reject) => {
-                                    geocoder.geocode({ address: post.address }, (results, status) => {
+                                    geocoder.geocode({ address: post.geotag }, (results, status) => {
                                         if (status === "OK") {
                                             resolve(results);
                                         } else {
@@ -120,7 +147,7 @@ export default function MapComponent() {  // Renamed from Map to MapComponent
                                 locationHashMap[locationKey].posts.push(post);
 
                             } catch (error) {
-                                console.error(`Geocoding failed for ${post.address}:`, error);
+                                console.error(`Geocoding failed for ${post.geotag}:`, error);
                             }
                         }
 
@@ -132,7 +159,7 @@ export default function MapComponent() {  // Renamed from Map to MapComponent
                             const marker = new google.maps.marker.AdvancedMarkerElement({
                                 position: position,
                                 map: mapInstance,
-                                title: posts.length > 1 ? `${posts.length} posts at this location` : posts[0].title
+                                title: posts.length > 1 ? `${posts.length} posts at this location` : posts[0].caption
                             });
 
                             const infoWindow = new google.maps.InfoWindow({
@@ -187,7 +214,7 @@ export default function MapComponent() {  // Renamed from Map to MapComponent
             }
             infoWindows.forEach(infoWindow => infoWindow.close());
         };
-    }, []);
+    }, [posts]);
 
     return (
         <div style={{ height: '100vh', width: '100%' }}>
