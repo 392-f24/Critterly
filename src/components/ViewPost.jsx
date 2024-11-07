@@ -60,7 +60,15 @@ export default function ViewPost() {
                             <p className={styles.postDescription}>{post.caption}</p>
                             <p className={styles.postLocation}>Location: {post.geotag}</p>
                             <p className={styles.postDate}>
-                                Posted: {new Date(post.createdAt).toLocaleDateString()}
+                            Posted: {
+                                post.createdAt ? 
+                                new Date(post.createdAt.toDate()).toLocaleDateString("en-US", {
+                                    month: "2-digit",
+                                    day: "2-digit",
+                                    year: "numeric"
+                                }) 
+                                : "Date not available"
+                            }
                             </p>
                         </div>
                     </div>
