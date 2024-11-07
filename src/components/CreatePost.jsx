@@ -7,9 +7,11 @@ import { useNavigate } from "react-router-dom";
 import callGPT from "../utilities/aicall.js";
 
 const CreatePost = () => {
+  // fields for 
   const [selectedImage, setSelectedImage] = useState(null);
   const [caption, setCaption] = useState("");
   const [location, setLocation] = useState("");
+  const [characterization, setCharacterization] = useState(null);
   const [user] = useAuthState();
   const navigate = useNavigate();
 
@@ -37,6 +39,7 @@ const CreatePost = () => {
       setSelectedImage(null);
       setCaption("");
       setLocation("");
+      setCharacterization([]);
       setPostId(null); // Clear the postId after submitting
 
       navigate("/");
@@ -58,23 +61,25 @@ const CreatePost = () => {
       const imageUrl = await getDownloadURL(imageRef);
 
       // Call GPT API to generate caption based on the image URL
-      const generatedCaption = await callGPT(imageUrl); // Await the result of callGPT
+      const generateCharacterization = await callGPT(imageUrl);
+      //const generatedCaption = await callGPT(imageUrl); // Await the result of callGPT
 
       // Step 2: Create an initial post with empty caption and geotag
       const postRef = doc(db, "posts", Date.now().toString()); // Generate a unique ID for the post
       const initialPostData = {
-        caption: generatedCaption, // Set the caption here
+        caption, 
         geotag: "",  // Empty geotag initially
         imageUrl,
+        characterization: generateCharacterization,
         createdAt: new Date(),
         userId: user.uid,
       };
       await setDoc(postRef, initialPostData);
 
       // Step 3: Update the component's state with the generated caption
-      setCaption(generatedCaption); // Update the caption state
+      setCharacterization(generateCharacterization); // Update the caption state
       setPostId(postRef.id); // Store the document ID for later updates
-      alert("Image characterized. You can now submit after generating a caption.");
+      //alert("Image characterized. You can now submit after generating a caption.");
     } catch (error) {
       console.error("Error characterizing image:", error);
     }
@@ -114,6 +119,13 @@ const CreatePost = () => {
           )}
         </div>
 
+        {/* Characterization Display (non-editable) */}
+        {characterization && (
+          <div style={styles.characterizationBox}>
+            <label>Characterization:</label>
+            <p style={styles.characterizationText}>{characterization}</p>
+          </div>
+        )}
         <button
           onClick={handleCharacterizeImage}
           style={styles.characterizeButton}
@@ -231,6 +243,17 @@ const styles = {
     alignItems: "center",
     marginBottom: "15px",
     fontSize: "16px",
+  },
+  characterizationBox: {
+    marginTop: "16px",
+    padding: "8px",
+    backgroundColor: "#f1f1f1",
+    borderRadius: "4px",
+    border: "1px solid #ddd",
+  },
+  characterizationText: {
+    margin: 0,
+    color: "#333",
   },
   backButton: {
     display: "flex",
