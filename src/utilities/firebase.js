@@ -30,12 +30,38 @@ const firebaseSignOut = () => signOut(getAuth(firebase));
 
 export { firebaseSignOut as signOut };
 
-export const useAuthState = () => {
-  const [user, setUser] = useState();
-  
-  useEffect(() => (
-    onAuthStateChanged(getAuth(firebase), setUser)
-  ), []);
+// export const useAuthState = () => {
+//   const [user, setUser] = useState();
+//   useEffect(() => (
+//     onAuthStateChanged(getAuth(firebase), setUser)
+//   ), []);
 
-  return [user];
+//   return [user];
+// };
+
+export const useAuthState = () => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const auth = getAuth(firebase);
+
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (user) => {
+        setUser(user);
+        setLoading(false);
+      },
+      (error) => {
+        setError(error);
+        setLoading(false);
+      }
+    );
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, []);
+
+  return { user, loading, error };
 };

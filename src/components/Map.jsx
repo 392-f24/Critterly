@@ -426,7 +426,7 @@ export default function MapComponent() {
                 <button 
                     onClick={Create_Post} 
                     style={{
-                        backgroundColor: '#4A90E2',
+                        backgroundColor: '#87A96B',
                         color: 'white',
                         padding: '10px 20px',
                         borderRadius: '8px',
@@ -447,7 +447,7 @@ export default function MapComponent() {
                 <button 
                     onClick={View_Post}
                     style={{
-                        backgroundColor: '#6C757D',
+                        backgroundColor: '#8FBC8B',
                         color: 'white',
                         padding: '10px 20px',
                         borderRadius: '8px',

@@ -37,7 +37,7 @@ export const SignInButton = () => {
                     navigate('/signinpage');
                 } else {
                     // Existing user: navigate to profile or main page
-                    navigate('/view_profile');
+                    navigate('/');
                 }
               }
           });
@@ -50,11 +50,12 @@ export const SignInButton = () => {
       <button 
         onClick={handleSignIn}
         style={{
-          backgroundColor: '#28A745',
+          backgroundColor: '#87A96B',
           color: 'white',
           padding: '10px 20px',
           borderRadius: '8px',
           cursor: 'pointer',
+          border: 'none',
         }}
       >
           <i className="fa-solid fa-sign-in-alt" style={{ fontSize: '12px' }}></i> Sign in with Google
@@ -101,12 +102,15 @@ export const SignOutButton = () => {
 };
 
 
-const ProfileButton = () => (
-  <Link to="/view_profile" style={{ textDecoration: 'none' }}>
+const ProfileButton = () => {
+  const {user, loading, error} = useAuthState();
+  console.log(user);
+  return (
+    <Link to="/view_profile" style={{ textDecoration: 'none' }}>
     <button 
       style={{
         ...buttonBaseStyle,
-        backgroundColor: '#007bff',
+        backgroundColor: '#8FBC8B',
         marginLeft: 'auto'
       }}
     >
@@ -114,11 +118,12 @@ const ProfileButton = () => (
       Profile
     </button>
   </Link>
-);
+  ) 
+};
 
 
 const AuthButton = () => {
-  const [user] = useAuthState();
+  const {user, loading, error} = useAuthState();
   return user ? <ProfileButton /> : <SignInButton />;
 };
 
