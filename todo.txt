@@ -1,0 +1,5 @@
+1. When posting, associate UserID with post
+2. When clicking on profile button, shows profile
+3. edit profile
+4. show users posts on their profile
+5. filter posts in viewpost by parameters
