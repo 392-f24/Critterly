@@ -10,7 +10,6 @@ import SignInPage from './components/SigninPage.jsx';
 import EditProfilePage from './components/EditProfile.jsx';
 
 const App = () => {
-
   return (
     <Router>
       <div className="min-h-screen">
@@ -24,11 +23,12 @@ const App = () => {
           {/* View Post Route */}
           <Route path="/view_post" element={<ViewPost />}/>
 
-          {/* View User Profile */}
-          <Route path="/view_profile" element={<ProfilePage />}/>
+          {/* Profile Routes */}
+          <Route path="/view_profile" element={<ProfilePage />}/> {/* Own profile */}
+          <Route path="/profile/:userId" element={<ProfilePage />}/> {/* Other user's profile */}
 
+          {/* Sign In and Edit Profile */}
           <Route path="/signinpage" element={<SignInPage />}/>
-
           <Route path="/edit_profile" element={<EditProfilePage />}/>
 
         </Routes>

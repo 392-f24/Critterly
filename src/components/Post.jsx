@@ -29,6 +29,11 @@ export default function Post({ postData }) {
         navigate(`/?postLocation=${encodeURIComponent(postData.geotag)}&postId=${postData.id}`);
     };
 
+    const handleProfileNavigation = () => {
+        // Navigate to the user's profile page using their userID
+        navigate(`/profile/${postData.userId}`);
+    };
+
     return (
         <div style={{
             width: '100%',
@@ -104,17 +109,20 @@ export default function Post({ postData }) {
                             🗺️ View on Map
                         </button>
                     )}
-                    <button onClick={() => alert('View Profile')} style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#4A90E2',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s'
-                    }}>
-                        Profile
+                    <button 
+                        onClick={handleProfileNavigation}
+                        style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#4A90E2',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s'
+                        }}
+                    >
+                        View Profile
                     </button>
                 </div>
             </div>
