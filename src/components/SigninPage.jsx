@@ -14,6 +14,9 @@ const SignInPage = () => {
         onAuthStateChanged(auth, (user) => {
             if (!user) {
                 navigate('/'); // Redirect to home if no authenticated user
+            } else {
+                // Set the email from the authenticated user
+                setEmail(user.email);
             }
         });
     }, [navigate]);
@@ -22,8 +25,8 @@ const SignInPage = () => {
         try {
             const user = auth.currentUser;
 
-            if (!username || !email) {
-                setError('Username and email are required.');
+            if (!username) {
+                setError('Username is required.');
                 return;
             }
 
@@ -31,7 +34,7 @@ const SignInPage = () => {
             await setDoc(userDocRef, {
                 uid: user.uid,
                 username,
-                email,
+                email,  // This will still be included in the database
                 biography: '',
                 createdAt: new Date(),
                 posts: [],
@@ -54,14 +57,6 @@ const SignInPage = () => {
                 placeholder="Username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                style={styles.input}
-            />
-            
-            <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 style={styles.input}
             />
             
