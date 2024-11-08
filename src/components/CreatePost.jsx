@@ -8,38 +8,14 @@ import { useNavigate } from "react-router-dom";
 import callGPT from "../utilities/aicall.js";
 import GoogleMapsLoader from '../utilities/googleMapsLoader';
 
-const CreatePost = () => {
+
+// Step 1: Initial Upload Component
+const ImageLocationUpload = ({ onNext, isLoadingMaps }) => {
   const [selectedImage, setSelectedImage] = useState(null);
-  const [caption, setCaption] = useState("");
   const [location, setLocation] = useState("");
-  const [characterization, setCharacterization] = useState(null);
-  const [user] = useAuthState();
-  const navigate = useNavigate();
-  const [isCharacterizing, setIsCharacterizing] = useState(false);
-  const [isPosting, setIsPosting] = useState(false);
-  const [imageUrl, setImageUrl] = useState(null);
-  const [isLoadingMaps, setIsLoadingMaps] = useState(true);
   const [showValidation, setShowValidation] = useState(false);
-  
   const autocompleteRef = useRef(null);
   const locationInputRef = useRef(null);
-
-  // Validation state
-  const isImageMissing = !selectedImage;
-  const isCaptionMissing = !caption.trim();
-  const isLocationMissing = !location.trim();
-
-  useEffect(() => {
-    const initializeMaps = async () => {
-      try {
-        await GoogleMapsLoader.load();
-        setIsLoadingMaps(false);
-      } catch (error) {
-        console.error('Error loading Google Maps:', error);
-      }
-    };
-    initializeMaps();
-  }, []);
 
   useEffect(() => {
     if (!isLoadingMaps && locationInputRef.current && !autocompleteRef.current && window.google) {
@@ -84,22 +60,120 @@ const CreatePost = () => {
       }
       const imageUrl = URL.createObjectURL(file);
       setSelectedImage({ file, url: imageUrl });
-      setImageUrl(null);
-      setCharacterization(null);
     }
   };
 
-  const handleCharacterizeImage = async () => {
-    if (!selectedImage || !user) return;
+  const handleNext = () => {
+    if (!selectedImage || !location.trim()) {
+      setShowValidation(true);
+      return;
+    }
+    onNext(selectedImage, location);
+  };
 
+  return (
+    <div style={styles.formContainer}>
+      <h2>Step 1: Upload Image & Location</h2>
+      
+      <div style={styles.inputGroup}>
+        <label style={styles.label}>
+          Image {!selectedImage && showValidation && 
+            <span style={styles.required}>* Required</span>
+          }
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+          style={styles.fileInput}
+        />
+      </div>
+
+      <div style={{
+        ...styles.imageBox,
+        border: !selectedImage && showValidation ? '2px dashed #ff4444' : '1px solid #ccc'
+      }}>
+        {selectedImage ? (
+          <img
+            src={selectedImage.url}
+            alt="Selected"
+            style={styles.imagePreview}
+          />
+        ) : (
+          <p style={styles.imagePlaceholder}>
+            {showValidation && !selectedImage 
+              ? "Please select an image" 
+              : "No Image Selected"}
+          </p>
+        )}
+      </div>
+
+      <div style={styles.inputGroup}>
+        <label style={styles.label}>
+          Location {!location && showValidation && 
+            <span style={styles.required}>* Required</span>
+          }
+        </label>
+        <input
+          ref={locationInputRef}
+          type="text"
+          placeholder="Search for a location..."
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          style={{
+            ...styles.input,
+            backgroundColor: isLoadingMaps ? '#f5f5f5' : '#fff',
+            border: !location && showValidation ? '2px solid #ff4444' : '1px solid #ccc'
+          }}
+          disabled={isLoadingMaps}
+        />
+        {isLoadingMaps && (
+          <div style={styles.loadingText}>Loading location search...</div>
+        )}
+      </div>
+
+      <button
+        onClick={handleNext}
+        style={{
+          ...styles.button,
+          backgroundColor: '#007bff'
+        }}
+      >
+        Next Step
+      </button>
+    </div>
+  );
+};
+
+// Step 2: Characterization and Caption Component
+const CharacterizationCaption = ({ imageData, location, onBack, onSubmit }) => {
+  const [characterization, setCharacterization] = useState(null);
+  const [caption, setCaption] = useState("");
+  const [isCharacterizing, setIsCharacterizing] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
+  const [user] = useAuthState();
+  const [isPosting, setIsPosting] = useState(false);
+
+  useEffect(() => {
+    handleCharacterizeImage();
+  }, []);
+
+  const getBase64FromFile = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleCharacterizeImage = async () => {
     try {
       setIsCharacterizing(true);
-      const imageRef = ref(storage, `posts/${Date.now()}_${selectedImage.file.name}`);
-      await uploadBytes(imageRef, selectedImage.file);
-      const uploadedImageUrl = await getDownloadURL(imageRef);
-      setImageUrl(uploadedImageUrl);
-
-      const generateCharacterization = await callGPT(uploadedImageUrl);
+      const base64image = await getBase64FromFile(imageData.file);
+      const formattedImage = `data:image/jpeg;base64,${base64image.split(',')[1]}`; // Add prefix
+      // Use the temporary URL for characterization without uploading
+      const generateCharacterization = await callGPT(formattedImage);
       setCharacterization(generateCharacterization);
     } catch (error) {
       console.error("Error characterizing image:", error);
@@ -108,45 +182,170 @@ const CreatePost = () => {
     }
   };
 
-  const handlePostSubmit = async () => {
-    if (isImageMissing || isCaptionMissing || isLocationMissing) {
+  const handleSubmit = async () => {
+    if (!caption.trim()) {
       setShowValidation(true);
+      return;
+    }
+
+    if (!characterization) {
+      alert("Please wait for image characterization to complete");
       return;
     }
 
     try {
       setIsPosting(true);
+      
+      // Upload image only when posting
+      const imageRef = ref(storage, `posts/${Date.now()}_${imageData.file.name}`);
+      await uploadBytes(imageRef, imageData.file);
+      const uploadedImageUrl = await getDownloadURL(imageRef);
 
-      const postRef = doc(db, "posts", Date.now().toString());
-      const postData = {
+      // Submit all data together
+      await onSubmit({
+        imageUrl: uploadedImageUrl,
+        characterization,
         caption,
-        geotag: location,
-        imageUrl,
-        characterization: characterization || "",
-        createdAt: new Date(),
-        userId: user.uid,
-      };
-
-      await setDoc(postRef, postData);
-
-      setSelectedImage(null);
-      setCaption("");
-      setLocation("");
-      setCharacterization(null);
-      setImageUrl(null);
-      setShowValidation(false);
-
-      navigate("/");
+        location
+      });
     } catch (error) {
-      console.error("Error submitting post:", error);
+      console.error("Error posting:", error);
+      alert("Error posting. Please try again.");
     } finally {
       setIsPosting(false);
     }
   };
 
-  const handleLocationKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
+  return (
+    <div style={styles.formContainer}>
+      <h2>Step 2: Review & Add Caption</h2>
+
+      <div style={styles.imageBox}>
+        <img
+          src={imageData.url}
+          alt="Selected"
+          style={styles.imagePreview}
+        />
+      </div>
+
+      <div style={styles.infoBox}>
+        <strong>Location:</strong> {location}
+      </div>
+
+      <div style={styles.characterizationBox}>
+        <label>Characterization:</label>
+        {isCharacterizing ? (
+          <div style={styles.loadingContainer}>
+            <BiLoaderAlt style={styles.loadingIcon} className="spin" />
+            <p style={styles.loadingText}>Analyzing image...</p>
+          </div>
+        ) : (
+          <p style={styles.characterizationText}>{characterization}</p>
+        )}
+      </div>
+
+      <div style={styles.inputGroup}>
+        <label style={styles.label}>
+          Caption {!caption && showValidation && 
+            <span style={styles.required}>* Required</span>
+          }
+        </label>
+        <textarea
+          placeholder="Write a caption..."
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          style={{
+            ...styles.textarea,
+            border: !caption && showValidation ? '2px solid #ff4444' : '1px solid #ccc'
+          }}
+        />
+      </div>
+
+      <div style={styles.buttonGroup}>
+        <button
+          onClick={onBack}
+          style={{
+            ...styles.button,
+            backgroundColor: '#6c757d',
+            marginRight: '10px'
+          }}
+          disabled={isPosting}
+        >
+          Back
+        </button>
+        
+        {user ? (
+          <button
+            onClick={handleSubmit}
+            style={{
+              ...styles.button,
+              backgroundColor: '#28a745',
+              opacity: (isCharacterizing || isPosting || !characterization) ? 0.7 : 1,
+              cursor: (isCharacterizing || isPosting || !characterization) ? 'not-allowed' : 'pointer',
+            }}
+            disabled={isCharacterizing || isPosting || !characterization}
+          >
+            {isPosting ? (
+              <>
+                <BiLoaderAlt style={{ marginRight: "8px" }} className="spin" />
+                Posting...
+              </>
+            ) : (
+              "Post"
+            )}
+          </button>
+        ) : (
+          <div style={styles.signInMessage}>
+            Please sign in to post
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Main CreatePost Component
+const CreatePost = () => {
+  const [step, setStep] = useState(1);
+  const [postData, setPostData] = useState(null);
+  const [isLoadingMaps, setIsLoadingMaps] = useState(true);
+  const navigate = useNavigate();
+  const [user] = useAuthState();
+
+  useEffect(() => {
+    const initializeMaps = async () => {
+      try {
+        await GoogleMapsLoader.load();
+        setIsLoadingMaps(false);
+      } catch (error) {
+        console.error('Error loading Google Maps:', error);
+      }
+    };
+    initializeMaps();
+  }, []);
+
+  const handleFirstStep = (selectedImage, location) => {
+    setPostData({ selectedImage, location });
+    setStep(2);
+  };
+
+  const handleBack = () => {
+    setStep(1);
+    setPostData(null);
+  };
+
+  const handleSubmit = async (finalData) => {
+    try {
+      const postRef = doc(db, "posts", Date.now().toString());
+      await setDoc(postRef, {
+        ...finalData,
+        createdAt: new Date(),
+        userId: user.uid,
+      });
+      navigate("/");
+    } catch (error) {
+      console.error("Error submitting post:", error);
+      throw error; // Re-throw to be handled by the CharacterizationCaption component
     }
   };
 
@@ -157,142 +356,50 @@ const CreatePost = () => {
         Back to Map
       </button>
 
-      <div style={styles.formContainer}>
-        <h2>Create a New Post</h2>
+      {step === 1 && (
+        <ImageLocationUpload
+          onNext={handleFirstStep}
+          isLoadingMaps={isLoadingMaps}
+        />
+      )}
 
-        <div style={styles.inputGroup}>
-          <label style={styles.label}>
-            Image {isImageMissing && showValidation && 
-              <span style={styles.required}>* Required</span>
-            }
-          </label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            style={styles.fileInput}
-          />
-        </div>
-
-        <div style={{
-          ...styles.imageBox,
-          border: isImageMissing && showValidation ? '2px dashed #ff4444' : '1px solid #ccc'
-        }}>
-          {selectedImage ? (
-            <img
-              src={selectedImage.url}
-              alt="Selected"
-              style={styles.imagePreview}
-            />
-          ) : (
-            <p style={styles.imagePlaceholder}>
-              {showValidation && isImageMissing 
-                ? "Please select an image" 
-                : "No Image Selected"}
-            </p>
-          )}
-        </div>
-
-        {(characterization || isCharacterizing) && (
-          <div style={styles.characterizationBox}>
-            <label>Characterization:</label>
-            {isCharacterizing ? (
-              <div style={styles.loadingContainer}>
-                <BiLoaderAlt style={styles.loadingIcon} className="spin" />
-                <p style={styles.loadingText}>Analyzing image...</p>
-              </div>
-            ) : (
-              <p style={styles.characterizationText}>{characterization}</p>
-            )}
-          </div>
-        )}
-
-        <button
-          onClick={handleCharacterizeImage}
-          style={{
-            ...styles.characterizeButton,
-            opacity: isCharacterizing || !selectedImage || isPosting ? 0.7 : 1,
-            cursor: isCharacterizing || !selectedImage || isPosting ? "not-allowed" : "pointer",
-          }}
-          disabled={isCharacterizing || !selectedImage || isPosting}
-        >
-          {isCharacterizing ? (
-            <BiLoaderAlt style={{ marginRight: "8px" }} className="spin" />
-          ) : (
-            <FaMagic style={{ marginRight: "8px" }} />
-          )}
-          {isCharacterizing ? "Characterizing..." : "Characterize Image"}
-        </button>
-
-        <div style={styles.inputGroup}>
-          <label style={styles.label}>
-            Caption {isCaptionMissing && showValidation && 
-              <span style={styles.required}>* Required</span>
-            }
-          </label>
-          <textarea
-            placeholder="Write a caption..."
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            style={{
-              ...styles.textarea,
-              border: isCaptionMissing && showValidation ? '2px solid #ff4444' : '1px solid #ccc'
-            }}
-          />
-        </div>
-
-        <div style={styles.inputGroup}>
-          <label style={styles.label}>
-            Location {isLocationMissing && showValidation && 
-              <span style={styles.required}>* Required</span>
-            }
-          </label>
-          <input
-            ref={locationInputRef}
-            type="text"
-            placeholder="Search for a location..."
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            onKeyDown={handleLocationKeyDown}
-            style={{
-              ...styles.input,
-              backgroundColor: isLoadingMaps ? '#f5f5f5' : '#fff',
-              border: isLocationMissing && showValidation ? '2px solid #ff4444' : '1px solid #ccc'
-            }}
-            disabled={isLoadingMaps}
-          />
-          {isLoadingMaps && (
-            <div style={styles.loadingText}>Loading location search...</div>
-          )}
-        </div>
-
-        <button
-          onClick={handlePostSubmit}
-          className={showValidation && (isImageMissing || isCaptionMissing || isLocationMissing) ? 'shake' : ''}
-          style={{
-            ...styles.button,
-            backgroundColor: showValidation && (isImageMissing || isCaptionMissing || isLocationMissing) 
-              ? '#ff4444' 
-              : '#007bff',
-            opacity: (!selectedImage || !caption || !location || isCharacterizing || isPosting || !imageUrl) ? 0.5 : 1,
-            cursor: (!selectedImage || !caption || !location || isCharacterizing || isPosting || !imageUrl) ? "not-allowed" : "pointer",
-          }}
-        >
-          {isPosting ? (
-            <>
-              <BiLoaderAlt style={{ marginRight: "8px" }} className="spin" />
-              Posting...
-            </>
-          ) : (
-            "Post"
-          )}
-        </button>
-      </div>
+      {step === 2 && postData && (
+        <CharacterizationCaption
+          imageData={postData.selectedImage}
+          location={postData.location}
+          onBack={handleBack}
+          onSubmit={handleSubmit}
+        />
+      )}
     </div>
   );
 };
 
-const styles = {
+// Add any additional styles needed for new components
+const additionalStyles = {
+  buttonGroup: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginTop: '20px',
+  },
+  infoBox: {
+    padding: '10px',
+    backgroundColor: '#f8f9fa',
+    borderRadius: '4px',
+    marginBottom: '15px',
+    border: '1px solid #dee2e6',
+  },
+  signInMessage: {
+    color: '#dc3545',
+    fontSize: '14px',
+    padding: '10px',
+    textAlign: 'center',
+    backgroundColor: '#f8d7da',
+    borderRadius: '4px',
+    border: '1px solid #f5c6cb',
+  }
+};
+const originalStyles = {
   label: {
     display: 'flex',
     alignItems: 'center',
@@ -438,7 +545,12 @@ const styles = {
   }
 };
 
+const styles = {
+  ...originalStyles,  // Your existing styles
+  ...additionalStyles
+};
 const styleSheet = document.createElement("style");
+
 styleSheet.textContent = `
   @keyframes spin {
     from {
