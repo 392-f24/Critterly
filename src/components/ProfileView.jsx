@@ -1,60 +1,51 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom'; // For navigation
-import { storage, db, useAuthState } from "../utilities/firebase";
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { auth, storage, db } from "../utilities/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { collection, getDocs, query, where, doc, getDoc, setDoc } from 'firebase/firestore';
-
-
+import { doc, getDoc } from 'firebase/firestore';
+import { SignOutButton } from '../components/Navigation';
 import profilePic from '../mock_data/Default_Profile.png';
 
 const ProfilePage = () => {
-  const [userData, setUserData] = useState([]);
+  const [userData, setUserData] = useState({});
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
-        try {
-          const q = query(collection(db, "users"), where("uuid", "==", "1234567"));
-          const querySnapshot = await getDocs(q);
+      try {
+        // Check if there is a currently authenticated user
+        const user = auth.currentUser;
+        if (user) {
+          const userDocRef = doc(db, "users", user.uid); // Reference to the user's document
+          const userDoc = await getDoc(userDocRef);
 
-          if (querySnapshot.empty) {
-            console.log("No such document!");
-              return;
-          }
-          else {
-            console.log("Successful query");
+          if (userDoc.exists()) {
+            const data = userDoc.data();
 
-            const data = querySnapshot.docs[0].data();
-
-            const user = {
-              profilePicture: data["Profile Picture"] || profilePic,    
-              username: data.Username || "Default Name",
-              email: data.Email || "default@example.com",
-              biography: data.Biography || "",
-              posts: data.Posts || 0,
+            setUserData({
+              profilePicture: data.profilePicture || profilePic,    
+              username: data.username || "Default Name",
+              email: data.email || "default@example.com",
+              biography: data.biography || "",
+              posts: data.posts || 0,
               locationsVisited: Array.isArray(data.Locations) ? data.Locations.length : 0,
               speciesSpotted: Array.isArray(data.Species) ? data.Species.length : 0
-            };
+            });
 
-            console.log("User data:", user);
-            setUserData(user);
-            return;
-            }
+            console.log("User data:", data);
+          } else {
+            console.log("No user profile found in Firestore.");
+          }
+        } else {
+          console.log("No authenticated user found.");
         }
-        catch(error) {
-          console.error("Error fetching posts from firestore:", error);
-        }
+      } catch (error) {
+        console.error("Error fetching user data from Firestore:", error);
+      }
     };
+
     fetchUser();
-}, []);
-
-  const handleSignOut = () => {
-    // Sign-out logic here
-    console.log('Signed out');
-  };
-
-  // State to manage if the image is expanded
-  const [isExpanded, setIsExpanded] = useState(false);
+  }, []);
 
   // Toggle the expanded view
   const toggleExpanded = () => {
@@ -63,14 +54,13 @@ const ProfilePage = () => {
 
   return (
     <div style={styles.profile}>
-
       {/* Profile Picture */}
       <div style={styles.profilePictureContainer}>
         <img
-          src={userData.profilePicture} // Replace with your image source
+          src={userData.profilePicture} 
           alt="Profile"
           style={styles.profilePicture}
-          onClick={toggleExpanded} // Click to expand
+          onClick={toggleExpanded}
         />
       </div>
 
@@ -79,7 +69,7 @@ const ProfilePage = () => {
         <div style={styles.overlay} onClick={toggleExpanded}>
           <div style={styles.expandedImageContainer}>
             <img
-              src={userData.profilePicture} // Same image source
+              src={userData.profilePicture}
               alt="Profile Expanded"
               style={styles.expandedImage}
             />
@@ -90,42 +80,35 @@ const ProfilePage = () => {
         </div>
       )}
 
-
-
       <h2 style={styles.username}>{userData.username}</h2>
       <p style={styles.email}>{userData.email}</p>
       <p style={styles.biography}>{userData.biography}</p>
       
       <div style={styles.statsContainer}>
-
         <div style={styles.stat}>
           <span style={styles.statNumber}>{userData.posts}</span>
           <span style={styles.statLabel}>Posts</span>
         </div>
-
         <div style={styles.stat}>
           <span style={styles.statNumber}>{userData.locationsVisited}</span>
           <span style={styles.statLabel}>Locations Visited</span>
         </div>
-
         <div style={styles.stat}>
           <span style={styles.statNumber}>{userData.speciesSpotted}</span>
           <span style={styles.statLabel}>Species Spotted</span>
         </div>
-
       </div>
 
       <div style={styles.buttonRow}>
         <Link to="/edit-profile">
           <button style={styles.editProfileButton}>Edit Profile</button>
         </Link>
-        <button onClick={handleSignOut} style={styles.signOutButton}>
-          Sign Out
-        </button>
+        <SignOutButton />
       </div>
     </div>
   );
 };
+
 
 const styles = {
   profile: {
