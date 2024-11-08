@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { db } from '../utilities/firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -9,6 +9,7 @@ import GoogleMapsLoader from '../utilities/googleMapsLoader';
 
 export default function MapComponent() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const mapRef = React.useRef(null);
     const [mapLoaded, setMapLoaded] = React.useState(false);
     const [coordinates, setCoordinates] = React.useState(null);
@@ -17,6 +18,7 @@ export default function MapComponent() {
     const [markers, setMarkers] = React.useState([]);
     const [markerClusterer, setMarkerClusterer] = React.useState(null);
     const [posts, setPosts] = React.useState([]);
+    const [initialFocus, setInitialFocus] = React.useState(null);
 
     const Create_Post = () => {
         navigate('/create_post');
@@ -128,7 +130,7 @@ export default function MapComponent() {
             day: "2-digit",
             year: "numeric"
         }) : "Date not available";
-    
+
         return `
             <div style="
                 width: 280px;
@@ -138,8 +140,7 @@ export default function MapComponent() {
                 overflow: hidden;
                 margin: 10px;
                 "onclick="window.location.href='/view_post?postId=${post.id}'"
-            ">
-                <!-- User Profile Section -->
+            >
                 <div style="
                     display: flex;
                     align-items: center;
@@ -167,21 +168,8 @@ export default function MapComponent() {
                             ${date}
                         </div>
                     </div>
-                    <button onclick="alert('View Profile')" style="
-                        padding: 6px 12px;
-                        background-color: #4A90E2;
-                        color: white;
-                        border: none;
-                        border-radius: 6px;
-                        font-size: 12px;
-                        cursor: pointer;
-                        transition: background-color 0.2s;
-                    ">
-                        Profile
-                    </button>
                 </div>
-    
-                <!-- Image Container -->
+
                 <div style="
                     width: 100%;
                     height: 180px;
@@ -201,27 +189,40 @@ export default function MapComponent() {
                         onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=Image+Not+Found';"
                     />
                 </div>
-    
-                <!-- Caption Container -->
-                <div style="
-                    padding: 12px;
-                    background-color: white;
-                ">
+
+                <div style="padding: 12px;">
                     <p style="
                         margin: 0;
                         color: #333;
                         font-size: 14px;
                         line-height: 1.4;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 3;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
                     ">
                         ${post.caption || 'No caption'}
                     </p>
+                    
+                    ${post.characterization ? createWildlifeContent(post.characterization) : ''}
+                    
+                    <button style="
+                        width: 100%;
+                        margin-top: 12px;
+                        padding: 8px;
+                        background-color: #4A90E2;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                    ">
+                        View Full Post
+                    </button>
                 </div>
-    
-                ${post.characterization ? createWildlifeContent(post.characterization) : ''}
             </div>
         `;
     };
-    
+
     const createMultiplePostsContent = (posts) => {
         return `
             <div style="
@@ -236,6 +237,8 @@ export default function MapComponent() {
                 ${posts.map((post, index) => `
                     <div style="
                         ${index !== 0 ? 'margin-top: 20px;' : ''}
+                        border-top: ${index !== 0 ? '1px solid #eee' : 'none'};
+                        padding-top: ${index !== 0 ? '20px' : '0'};
                     ">
                         ${createSinglePostContent(post)}
                     </div>
@@ -254,12 +257,22 @@ export default function MapComponent() {
                     ...doc.data()
                 }));
                 setPosts(postData);
+
+                // Check if we need to focus on a specific post
+                const postId = searchParams.get('postId');
+                const postLocation = searchParams.get('postLocation');
+                if (postId && postLocation) {
+                    const targetPost = postData.find(post => post.id === postId);
+                    if (targetPost) {
+                        setInitialFocus({ post: targetPost, location: postLocation });
+                    }
+                }
             } catch (error) {
                 console.error("Error fetching posts:", error);
             }
         };
         fetchPosts();
-    }, []);
+    }, [searchParams]);
 
     React.useEffect(() => {
         if (posts.length === 0) return;
@@ -275,9 +288,11 @@ export default function MapComponent() {
                 });
                 setMap(mapInstance);
 
-                // Set center to Northwestern
+                // Set initial center (Northwestern or provided location)
+                const initialLocation = initialFocus?.location || "633 Clark St, Evanston, IL 60208";
+                
                 geocoder.geocode({
-                    address: "633 Clark St, Evanston, IL 60208"
+                    address: initialLocation
                 }, async (results, status) => {
                     if (status === "OK") {
                         const centerLocation = results[0].geometry.location;
@@ -345,6 +360,15 @@ export default function MapComponent() {
 
                             markersArray.push(marker);
                             infoWindowsArray.push(infoWindow);
+
+                            // If this marker contains our target post, open its info window
+                            if (initialFocus?.post && posts.some(p => p.id === initialFocus.post.id)) {
+                                infoWindow.open({
+                                    anchor: marker,
+                                    map: mapInstance
+                                });
+                                mapInstance.setZoom(17);  // Zoom in closer to the target
+                            }
                         });
 
                         setMarkers(markersArray);
@@ -369,8 +393,7 @@ export default function MapComponent() {
                     }
                 });
                 
-                setMapLoaded(true);
-            })
+                setMapLoaded(true);})
             .catch(e => {
                 console.error('Error loading Google Maps:', e);
             });
@@ -382,7 +405,7 @@ export default function MapComponent() {
             }
             infoWindows.forEach(infoWindow => infoWindow.close());
         };
-    }, [posts]);
+    }, [posts, initialFocus]);
 
     return (
         <div style={{ height: '100vh', width: '100%' }}>
@@ -415,15 +438,10 @@ export default function MapComponent() {
                         fontSize: '14px',
                         fontWeight: '500',
                         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                        transition: 'all 0.2s ease-in-out',
-                        ':hover': {
-                            backgroundColor: '#357ABD',
-                            transform: 'translateY(-1px)',
-                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                        }
+                        transition: 'all 0.2s ease-in-out'
                     }}
                 >
-                    <i className="fa-solid fa-plus" style={{ fontSize: '12px' }}></i>
+                    <span style={{ fontSize: '16px' }}>➕</span>
                     Create Post
                 </button>
                 <button 
@@ -440,12 +458,7 @@ export default function MapComponent() {
                         fontSize: '14px',
                         fontWeight: '500',
                         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                        transition: 'all 0.2s ease-in-out',
-                        ':hover': {
-                            backgroundColor: '#5A6268',
-                            transform: 'translateY(-1px)',
-                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                        }
+                        transition: 'all 0.2s ease-in-out'
                     }}
                 >
                     View Posts

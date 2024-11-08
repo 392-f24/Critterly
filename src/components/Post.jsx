@@ -1,6 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Post({ postData }) {
+    const navigate = useNavigate();
     if (!postData) return null;
 
     const renderRarityStars = (rarity) => {
@@ -21,6 +23,11 @@ export default function Post({ postData }) {
             day: "2-digit",
             year: "numeric"
         }) : "Date not available";
+
+    const handleMapNavigation = () => {
+        // Navigate to map page with both location and post ID
+        navigate(`/?postLocation=${encodeURIComponent(postData.geotag)}&postId=${postData.id}`);
+    };
 
     return (
         <div style={{
@@ -56,22 +63,60 @@ export default function Post({ postData }) {
                     <div style={{ fontWeight: 500, color: '#333' }}>
                         {postData.userName || 'Anonymous User'}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#666' }}>
-                        {date}
+                    <div style={{ 
+                        fontSize: '12px', 
+                        color: '#666',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}>
+                        <span>{date}</span>
+                        {postData.geotag && (
+                            <span style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '4px',
+                                color: '#28a745'
+                            }}>
+                                📍 {postData.geotag}
+                            </span>
+                        )}
                     </div>
                 </div>
-                <button onClick={() => alert('View Profile')} style={{
-                    padding: '6px 12px',
-                    backgroundColor: '#4A90E2',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
-                }}>
-                    Profile
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    {postData.geotag && (
+                        <button 
+                            onClick={handleMapNavigation}
+                            style={{
+                                padding: '6px 12px',
+                                backgroundColor: '#28a745',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                            }}
+                        >
+                            🗺️ View on Map
+                        </button>
+                    )}
+                    <button onClick={() => alert('View Profile')} style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#4A90E2',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                    }}>
+                        Profile
+                    </button>
+                </div>
             </div>
 
             {/* Image Container */}
