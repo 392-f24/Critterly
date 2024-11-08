@@ -7,6 +7,7 @@ import ViewPost from './components/ViewPost';
 import callGPT from './utilities/aicall';
 import ProfilePage from './components/ProfileView.jsx';
 import SignInPage from './components/SigninPage.jsx';
+import EditProfilePage from './components/EditProfile.jsx';
 
 const App = () => {
 
@@ -27,6 +28,8 @@ const App = () => {
           <Route path="/view_profile" element={<ProfilePage />}/>
 
           <Route path="/signinpage" element={<SignInPage />}/>
+
+          <Route path="/edit_profile" element={<EditProfilePage />}/>
 
         </Routes>
       </div>

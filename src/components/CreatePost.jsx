@@ -74,7 +74,7 @@ const CreatePost = () => {
   const [caption, setCaption] = useState("");
   const [location, setLocation] = useState("");
   const [characterization, setCharacterization] = useState(null);
-  const [user] = useAuthState();
+  const {user, loading, error} = useAuthState();
   const navigate = useNavigate();
   const [isCharacterizing, setIsCharacterizing] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
