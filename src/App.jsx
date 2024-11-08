@@ -5,6 +5,7 @@ import CreatePost from './components/CreatePost';
 import Map from './components/Map';
 import ViewPost from './components/ViewPost';
 import callGPT from './utilities/aicall';
+import ProfilePage from './components/ProfileView.jsx';
 
 const App = () => {
 
@@ -15,14 +16,14 @@ const App = () => {
           {/* Map Page */}
           <Route path="/" element={<Map />} />
 
-
           {/* Add post route */}
           <Route path="/create_post" element={<CreatePost />} />
 
           {/* View Post Route */}
           <Route path="/view_post" element={<ViewPost />}/>
 
-
+          {/* View User Profile */}
+          <Route path="/view_profile" element={<ProfilePage />}/>
         </Routes>
       </div>
     </Router>
