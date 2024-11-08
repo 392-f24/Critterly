@@ -1,12 +1,84 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FaArrowLeft, FaMagic } from "react-icons/fa";
-import { BiLoaderAlt } from "react-icons/bi";
+import { BiLoaderAlt, BiLeaf } from "react-icons/bi";
+import { FaSkull, FaStar } from "react-icons/fa";
 import { storage, db, useAuthState } from "../utilities/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import callGPT from "../utilities/aicall.js";
 import GoogleMapsLoader from '../utilities/googleMapsLoader';
+
+const WildlifeDisplay = ({ data }) => {
+  if (!data) return null;
+
+  const renderRarityStars = (rarity) => {
+    return [...Array(rarity)].map((_, index) => (
+      <FaStar key={index} style={{ color: '#ffd700', marginRight: '2px' }} />
+    ));
+  };
+
+  const renderThreatLevel = (level) => {
+    return [...Array(level)].map((_, index) => (
+      <FaSkull key={index} style={{ color: '#ff4444', marginRight: '2px' }} />
+    ));
+  };
+
+  return (
+    <div style={styles.wildlifeContainer}>
+      <div style={styles.header}>
+        <BiLeaf style={{ color: '#28a745', fontSize: '24px' }} />
+        <h3 style={styles.title}>{data.Species}</h3>
+      </div>
+
+      <div style={styles.infoGrid}>
+        <div style={styles.infoSection}>
+          <span style={styles.label}>Class:</span>
+          <span style={styles.value}>{data.Class}</span>
+        </div>
+
+        <div style={styles.infoSection}>
+          <span style={styles.label}>Diet:</span>
+          <span style={styles.value}>{data.Diet}</span>
+        </div>
+
+        <div style={styles.infoSection}>
+          <span style={styles.label}>Rarity:</span>
+          <div style={styles.iconContainer}>
+            {renderRarityStars(data.Rarity)}
+          </div>
+        </div>
+
+        <div style={styles.infoSection}>
+          <span style={styles.label}>Threat Level:</span>
+          <div style={styles.iconContainer}>
+            {renderThreatLevel(data.ThreatLevel)}
+          </div>
+        </div>
+      </div>
+
+      <div style={styles.description}>
+        <p style={styles.descriptionText}>{data.Description}</p>
+      </div>
+
+      <div style={styles.funFact}>
+        <span style={styles.funFactLabel}>Fun Fact:</span>
+        <p style={styles.funFactText}>{data.FunFact}</p>
+      </div>
+
+      <div style={styles.tags}>
+        {data.LivingThing && (
+          <span style={styles.tag}>Living Thing</span>
+        )}
+        {data.Appropriate && (
+          <span style={{...styles.tag, backgroundColor: '#e3f2fd', color: '#1976d2'}}>
+            Appropriate
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const CreatePost = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -91,16 +163,25 @@ const CreatePost = () => {
 
   const handleCharacterizeImage = async () => {
     if (!selectedImage || !user) return;
-
+  
     try {
       setIsCharacterizing(true);
       const imageRef = ref(storage, `posts/${Date.now()}_${selectedImage.file.name}`);
       await uploadBytes(imageRef, selectedImage.file);
       const uploadedImageUrl = await getDownloadURL(imageRef);
       setImageUrl(uploadedImageUrl);
-
-      const generateCharacterization = await callGPT(uploadedImageUrl);
-      setCharacterization(generateCharacterization);
+  
+      const response = await callGPT(uploadedImageUrl);
+      let parsedCharacterization;
+      try {
+        // Clean up the response by removing markdown code block syntax
+        const cleanJson = response.replace(/```json\n|\n```/g, '').trim();
+        parsedCharacterization = JSON.parse(cleanJson);
+        setCharacterization(parsedCharacterization);
+      } catch (error) {
+        console.error("Error parsing characterization:", error);
+        setCharacterization(null);
+      }
     } catch (error) {
       console.error("Error characterizing image:", error);
     } finally {
@@ -195,14 +276,14 @@ const CreatePost = () => {
 
         {(characterization || isCharacterizing) && (
           <div style={styles.characterizationBox}>
-            <label>Characterization:</label>
+            <label>Wildlife Analysis:</label>
             {isCharacterizing ? (
               <div style={styles.loadingContainer}>
                 <BiLoaderAlt style={styles.loadingIcon} className="spin" />
                 <p style={styles.loadingText}>Analyzing image...</p>
               </div>
             ) : (
-              <p style={styles.characterizationText}>{characterization}</p>
+              <WildlifeDisplay data={characterization} />
             )}
           </div>
         )}
@@ -367,8 +448,7 @@ const styles = {
   button: {
     padding: "12px 20px",
     backgroundColor: "#007bff",
-    color: "#fff",
-    border: "none",
+    color: "#fff",border: "none",
     borderRadius: "4px",
     cursor: "pointer",
     marginTop: "10px",
@@ -394,15 +474,10 @@ const styles = {
   characterizationBox: {
     marginTop: "16px",
     marginBottom: "16px",
-    padding: "12px",
+    padding: "16px",
     backgroundColor: "#f8f9fa",
-    borderRadius: "4px",
+    borderRadius: "8px",
     border: "1px solid #dee2e6",
-  },
-  characterizationText: {
-    margin: "8px 0 0 0",
-    color: "#333",
-    lineHeight: "1.5",
   },
   backButton: {
     display: "flex",
@@ -435,6 +510,92 @@ const styles = {
     margin: "5px 0 0",
     color: "#666",
     fontSize: "14px",
+  },
+  // Wildlife Display Styles
+  wildlifeContainer: {
+    padding: '16px',
+    backgroundColor: '#ffffff',
+    borderRadius: '8px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    marginBottom: '16px',
+  },
+  title: {
+    margin: 0,
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#2c3e50',
+  },
+  infoGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '16px',
+    marginBottom: '16px',
+  },
+  infoSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  label: {
+    fontSize: '14px',
+    color: '#666',
+    fontWeight: '500',
+  },
+  value: {
+    fontSize: '16px',
+    color: '#2c3e50',
+  },
+  iconContainer: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  description: {
+    marginBottom: '16px',
+    padding: '12px',
+    backgroundColor: '#f8f9fa',
+    borderRadius: '4px',
+  },
+  descriptionText: {
+    margin: 0,
+    fontSize: '14px',
+    lineHeight: '1.5',
+    color: '#2c3e50',
+  },
+  funFact: {
+    padding: '12px',
+    backgroundColor: '#e3f2fd',
+    borderRadius: '4px',
+    marginBottom: '16px',
+  },
+  funFactLabel: {
+    display: 'block',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#1976d2',
+    marginBottom: '4px',
+  },
+  funFactText: {
+    margin: 0,
+    fontSize: '14px',
+    color: '#2c3e50',
+  },
+  tags: {
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap',
+  },
+  tag: {
+    padding: '4px 12px',
+    backgroundColor: '#e8f5e9',
+    color: '#2e7d32',
+    borderRadius: '16px',
+    fontSize: '12px',
+    fontWeight: '500',
   }
 };
 
@@ -482,16 +643,16 @@ styleSheet.textContent = `
 
   .pac-item {
     padding: 8px;
-    font-size: 14px;
+    fontSize: 14px;
     cursor: pointer;
   }
 
   .pac-item:hover {
-    background-color: #f5f5f5;
+    backgroundColor: #f5f5f5;
   }
 
   .pac-item-selected {
-    background-color: #e9ecef;
+    backgroundColor: #e9ecef;
   }
 `;
 document.head.appendChild(styleSheet);
