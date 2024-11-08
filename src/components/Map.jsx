@@ -130,7 +130,7 @@ export default function MapComponent() {
             day: "2-digit",
             year: "numeric"
         }) : "Date not available";
-
+    
         return `
             <div style="
                 width: 280px;
@@ -139,8 +139,7 @@ export default function MapComponent() {
                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
                 overflow: hidden;
                 margin: 10px;
-                "onclick="window.location.href='/view_post?postId=${post.id}'"
-            >
+            ">
                 <div style="
                     display: flex;
                     align-items: center;
@@ -157,19 +156,41 @@ export default function MapComponent() {
                         align-items: center;
                         justify-content: center;
                         margin-right: 12px;
-                    ">
+                        cursor: pointer;
+                    "
+                    onclick="window.location.href='/profile/${post.userId}'">
                         <span style="color: #666;">👤</span>
                     </div>
                     <div style="flex-grow: 1;">
-                        <div style="font-weight: 500; color: #333;">
+                        <div style="
+                            font-weight: 500; 
+                            color: #333;
+                            cursor: pointer;
+                        "
+                        onclick="window.location.href='/profile/${post.userId}'">
                             ${post.userName || 'Anonymous User'}
                         </div>
                         <div style="font-size: 12px; color: #666;">
                             ${date}
                         </div>
                     </div>
+                    <button 
+                        onclick="window.location.href='/profile/${post.userId}'"
+                        style="
+                            padding: 6px 12px;
+                            background-color: #4A90E2;
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            font-size: 12px;
+                            cursor: pointer;
+                            transition: background-color 0.2s;
+                        "
+                    >
+                        View Profile
+                    </button>
                 </div>
-
+    
                 <div style="
                     width: 100%;
                     height: 180px;
@@ -189,7 +210,7 @@ export default function MapComponent() {
                         onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=Image+Not+Found';"
                     />
                 </div>
-
+    
                 <div style="padding: 12px;">
                     <p style="
                         margin: 0;
@@ -206,16 +227,19 @@ export default function MapComponent() {
                     
                     ${post.characterization ? createWildlifeContent(post.characterization) : ''}
                     
-                    <button style="
-                        width: 100%;
-                        margin-top: 12px;
-                        padding: 8px;
-                        background-color: #4A90E2;
-                        color: white;
-                        border: none;
-                        border-radius: 6px;
-                        cursor: pointer;
-                    ">
+                    <button 
+                        onclick="window.location.href='/view_post?postId=${post.id}'"
+                        style="
+                            width: 100%;
+                            margin-top: 12px;
+                            padding: 8px;
+                            background-color: #4A90E2;
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                        "
+                    >
                         View Full Post
                     </button>
                 </div>
