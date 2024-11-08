@@ -11,7 +11,7 @@ export default function Post({ postData }) {
 
     const renderThreatLevel = (level) => {
         return [...Array(level)].map((_, index) => (
-            <span key={index} style={{ color: '#ff4444', marginRight: '2px' }}>☠</span>
+            <span key={index} style={{ color: '#ff4444', marginRight: '2px' }}>☠️</span>
         ));
     };
 

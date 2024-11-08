@@ -37,7 +37,7 @@ export default function MapComponent() {
 
         const renderThreatLevel = (level) => {
             return [...Array(level)].map(() => 
-                `<span style="color: #ff4444; margin-right: 2px;">☠</span>`
+                `<span style="color: #ff4444; margin-right: 2px;">☠️</span>`
             ).join('');
         };
 
