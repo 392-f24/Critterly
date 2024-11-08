@@ -368,6 +368,9 @@ const styles = {
     alignItems: 'center',
     gap: '8px',
     marginBottom: '5px',
+    fontSize: '14px',
+    color: '#666',
+    fontWeight: '500',
   },
   required: {
     color: '#ff4444',
@@ -529,11 +532,6 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
-  },
-  label: {
-    fontSize: '14px',
-    color: '#666',
-    fontWeight: '500',
   },
   value: {
     fontSize: '16px',

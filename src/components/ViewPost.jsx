@@ -4,6 +4,7 @@ import { db } from '../utilities/firebase';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 //import { mockAnimalPosts } from '../mock_data/animalPosts';
 import styles from './ViewPost.module.css';
+import Post from './Post';
 
 export default function ViewPost() {
     const navigate = useNavigate();
@@ -53,25 +54,7 @@ export default function ViewPost() {
         <div>
             <div className={styles.postContainer}>
                 {posts.map(post => (
-                    <div key={post.id} className={styles.post}>
-                        <img src={post.imageUrl} alt={post.caption} className={styles.postImage} />
-                        <div className={styles.postDetails}>
-                            <h2 className={styles.postTitle}>{post.caption}</h2>
-                            <p className={styles.postDescription}>{post.caption}</p>
-                            <p className={styles.postLocation}>Location: {post.geotag}</p>
-                            <p className={styles.postDate}>
-                            Posted: {
-                                post.createdAt ? 
-                                new Date(post.createdAt.toDate()).toLocaleDateString("en-US", {
-                                    month: "2-digit",
-                                    day: "2-digit",
-                                    year: "numeric"
-                                }) 
-                                : "Date not available"
-                            }
-                            </p>
-                        </div>
-                    </div>
+                    <Post key={post.id} postData={post} />
                 ))}
             </div>
             <div style={{ 
