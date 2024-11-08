@@ -1,11 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader } from '@googlemaps/js-api-loader';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { db } from '../utilities/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import Navigation from './Navigation';
 import styles from './Map.module.css';
+import GoogleMapsLoader from '../utilities/googleMapsLoader';
 
 export default function MapComponent() {
     const navigate = useNavigate();
@@ -91,13 +91,7 @@ export default function MapComponent() {
     React.useEffect(() => {
         if (posts.length === 0) return;
 
-        const loader = new Loader({
-            apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-            version: "beta",
-            libraries: ["maps", "marker", "geocoding"]
-        });
-
-        loader.load()
+        GoogleMapsLoader.load()
             .then(async (google) => {
                 const geocoder = new google.maps.Geocoder();
                 
@@ -105,7 +99,6 @@ export default function MapComponent() {
                     zoom: 15,
                     mapId: "DEMO_MAP_ID",
                     disableDefaultUI: true,
-
                 });
                 setMap(mapInstance);
 

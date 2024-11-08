@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FaArrowLeft, FaMagic } from "react-icons/fa";
 import { BiLoaderAlt } from "react-icons/bi";
 import { storage, db, useAuthState } from "../utilities/firebase";
@@ -6,6 +6,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import callGPT from "../utilities/aicall.js";
+import GoogleMapsLoader from '../utilities/googleMapsLoader';
 
 const CreatePost = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -16,6 +17,61 @@ const CreatePost = () => {
   const navigate = useNavigate();
   const [isCharacterizing, setIsCharacterizing] = useState(false);
   const [postId, setPostId] = useState(null);
+  const [isLoadingMaps, setIsLoadingMaps] = useState(true);
+  
+  // Add refs for autocomplete
+  const autocompleteRef = useRef(null);
+  const locationInputRef = useRef(null);
+
+  // Initialize Google Maps
+  useEffect(() => {
+    const initializeMaps = async () => {
+      try {
+        await GoogleMapsLoader.load();
+        setIsLoadingMaps(false);
+      } catch (error) {
+        console.error('Error loading Google Maps:', error);
+      }
+    };
+    initializeMaps();
+  }, []);
+
+  // Initialize Autocomplete
+  useEffect(() => {
+    if (!isLoadingMaps && locationInputRef.current && !autocompleteRef.current && window.google) {
+      try {
+        const options = {
+          fields: ["formatted_address", "geometry", "name"],
+          componentRestrictions: { country: "us" },
+          types: ["geocode", "establishment"]
+        };
+
+        autocompleteRef.current = new window.google.maps.places.Autocomplete(
+          locationInputRef.current,
+          options
+        );
+
+        // Add place_changed event listener
+        autocompleteRef.current.addListener("place_changed", () => {
+          const place = autocompleteRef.current.getPlace();
+          if (place.formatted_address) {
+            setLocation(place.formatted_address);
+          } else if (place.name) {
+            setLocation(place.name);
+          }
+        });
+      } catch (error) {
+        console.error('Error initializing autocomplete:', error);
+      }
+    }
+
+    // Cleanup
+    return () => {
+      if (autocompleteRef.current) {
+        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
+  }, [isLoadingMaps]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -77,6 +133,13 @@ const CreatePost = () => {
       console.error("Error characterizing image:", error);
     } finally {
       setIsCharacterizing(false);
+    }
+  };
+
+  // Prevent form submission on enter key in location input
+  const handleLocationKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
     }
   };
 
@@ -153,12 +216,21 @@ const CreatePost = () => {
         <div style={styles.inputGroup}>
           <label>Location</label>
           <input
+            ref={locationInputRef}
             type="text"
-            placeholder="Enter location..."
+            placeholder="Search for a location..."
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            style={styles.input}
+            onKeyDown={handleLocationKeyDown}
+            style={{
+              ...styles.input,
+              backgroundColor: isLoadingMaps ? '#f5f5f5' : '#fff'
+            }}
+            disabled={isLoadingMaps}
           />
+          {isLoadingMaps && (
+            <div style={styles.loadingText}>Loading location search...</div>
+          )}
         </div>
 
         <button
@@ -306,10 +378,10 @@ const styles = {
     marginBottom: "8px",
   },
   loadingText: {
-    margin: 0,
+    margin: "5px 0 0",
     color: "#666",
     fontSize: "14px",
-  },
+  }
 };
 
 // Add the animation styles
@@ -336,6 +408,28 @@ styleSheet.textContent = `
   button:disabled {
     transform: none;
     box-shadow: none;
+  }
+
+  /* Add styles for autocomplete dropdown */
+  .pac-container {
+    z-index: 1050;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+
+  .pac-item {
+    padding: 8px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .pac-item:hover {
+    background-color: #f5f5f5;
+  }
+
+  .pac-item-selected {
+    background-color: #e9ecef;
   }
 `;
 document.head.appendChild(styleSheet);
