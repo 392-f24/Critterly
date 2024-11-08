@@ -5,9 +5,14 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, getDoc } from 'firebase/firestore';
 import { SignOutButton } from '../components/Navigation';
 import profilePic from '../mock_data/Default_Profile.png';
+import { updateDoc } from "firebase/firestore";
+
 
 const ProfilePage = () => {
   const [userData, setUserData] = useState({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [newProfilePic, setNewProfilePic] = useState(null);
+  const [newBiography, setNewBiography] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
@@ -52,6 +57,36 @@ const ProfilePage = () => {
     setIsExpanded(!isExpanded);
   };
 
+  const handleEditProfile = () => setIsEditing(true);
+
+  const handleSaveChanges = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const userDocRef = doc(db, "users", user.uid);
+
+      // Update biography if changed
+      if (newBiography !== userData.biography) {
+        await updateDoc(userDocRef, { Biography: newBiography });
+      }
+
+      // Update profile picture if a new one is uploaded
+      if (newProfilePic) {
+        const profilePicRef = ref(storage, `profilePictures/${user.uid}`);
+        await uploadBytes(profilePicRef, newProfilePic);
+        const profilePicURL = await getDownloadURL(profilePicRef);
+        await updateDoc(userDocRef, { "Profile Picture": profilePicURL });
+        setUserData((prev) => ({ ...prev, profilePicture: profilePicURL }));
+      }
+
+      setUserData((prev) => ({ ...prev, biography: newBiography }));
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+    }
+  };
+
   return (
     <div style={styles.profile}>
       {/* Profile Picture */}
@@ -80,9 +115,31 @@ const ProfilePage = () => {
         </div>
       )}
 
-      <h2 style={styles.username}>{userData.username}</h2>
-      <p style={styles.email}>{userData.email}</p>
-      <p style={styles.biography}>{userData.biography}</p>
+{isEditing ? (
+        <>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setNewProfilePic(e.target.files[0])}
+            style={styles.fileInput}
+          />
+          <textarea
+            value={newBiography}
+            onChange={(e) => setNewBiography(e.target.value)}
+            style={styles.biographyInput}
+            placeholder="Update your biography"
+          />
+          <button onClick={handleSaveChanges} style={styles.saveButton}>Save Changes</button>
+        </>
+      ) : (
+        <>
+          <h2 style={styles.username}>{userData.username}</h2>
+          <p style={styles.email}>{userData.email}</p>
+          <p style={styles.biography}>{userData.biography}</p>
+
+          <button onClick={handleEditProfile} style={styles.editButton}>Edit Profile</button>
+        </>
+      )}
       
       <div style={styles.statsContainer}>
         <div style={styles.stat}>
@@ -100,9 +157,6 @@ const ProfilePage = () => {
       </div>
 
       <div style={styles.buttonRow}>
-        <Link to="/edit-profile">
-          <button style={styles.editProfileButton}>Edit Profile</button>
-        </Link>
         <SignOutButton />
       </div>
     </div>
@@ -121,6 +175,14 @@ const styles = {
     backgroundColor: '##ffffff',
     borderRadius: '8px',
     // boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+  },
+  biography: {
+    lineHeight: '1.6',
+    padding: '10px',
+    width: '100%',
+    color: '#777',
+    fontSize: '0.9em',
+    margin: '5px 0 50px',
   },
   container: {
     display: 'flex',
@@ -193,11 +255,6 @@ const styles = {
     color: '#555',
     fontSize: '1em',
     margin: '5px 0',
-  },
-  biography: {
-    color: '#777',
-    fontSize: '0.9em',
-    margin: '5px 0 50px',
   },
   statsContainer: {
     display: 'flex',
