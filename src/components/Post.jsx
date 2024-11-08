@@ -1,8 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { db } from '../utilities/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function Post({ postData }) {
     const navigate = useNavigate();
+    const [username, setUsername] = useState('Anonymous User');
+
+    useEffect(() => {
+        const fetchUsername = async () => {
+            if (postData?.userId) {
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', postData.userId));
+                    if (userDoc.exists()) {
+                        setUsername(userDoc.data().username || 'Anonymous User');
+                    }
+                } catch (error) {
+                    console.error("Error fetching username:", error);
+                    setUsername('Anonymous User');
+                }
+            }
+        };
+
+        fetchUsername();
+    }, [postData?.userId]);
+
     if (!postData) return null;
 
     const renderRarityStars = (rarity) => {
@@ -25,12 +47,10 @@ export default function Post({ postData }) {
         }) : "Date not available";
 
     const handleMapNavigation = () => {
-        // Navigate to map page with both location and post ID
         navigate(`/?postLocation=${encodeURIComponent(postData.geotag)}&postId=${postData.id}`);
     };
 
     const handleProfileNavigation = () => {
-        // Navigate to the user's profile page using their userID
         navigate(`/profile/${postData.userId}`);
     };
 
@@ -52,21 +72,32 @@ export default function Post({ postData }) {
                 borderBottom: '1px solid #eee',
                 backgroundColor: '#f8f9fa'
             }}>
-                <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    backgroundColor: '#e0e0e0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: '12px'
-                }}>
+                <div 
+                    onClick={handleProfileNavigation}
+                    style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        backgroundColor: '#e0e0e0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: '12px',
+                        cursor: 'pointer'
+                    }}
+                >
                     <span style={{ color: '#666' }}>👤</span>
                 </div>
                 <div style={{ flexGrow: 1 }}>
-                    <div style={{ fontWeight: 500, color: '#333' }}>
-                        {postData.userName || 'Anonymous User'}
+                    <div 
+                        onClick={handleProfileNavigation}
+                        style={{ 
+                            fontWeight: 500, 
+                            color: '#333',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {username}
                     </div>
                     <div style={{ 
                         fontSize: '12px', 
