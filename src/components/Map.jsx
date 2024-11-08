@@ -137,6 +137,7 @@ export default function MapComponent() {
                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
                 overflow: hidden;
                 margin: 10px;
+                "onclick="window.location.href='/view_post?postId=${post.id}'"
             ">
                 <!-- User Profile Section -->
                 <div style="
