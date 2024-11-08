@@ -4,6 +4,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 
+
 const SignInPage = () => {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
