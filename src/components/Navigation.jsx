@@ -1,5 +1,7 @@
-import { NavLink } from 'react-router-dom';
-import { signInWithGoogle, signOut, useAuthState } from '../utilities/firebase';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { signInWithGoogle, signOut, useAuthState, db, auth } from '../utilities/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 const buttonBaseStyle = {
   border: 'none',
@@ -16,37 +18,108 @@ const buttonBaseStyle = {
   color: 'white'
 };
 
-const SignInButton = () => (
-  <button 
-    onClick={signInWithGoogle}
-    style={{
-      ...buttonBaseStyle,
-      backgroundColor: '#28A745',
-      marginLeft: 'auto'
-    }}
-  >
-    <i className="fa-solid fa-sign-in-alt" style={{ fontSize: '12px' }}></i>
-    Sign in with Google
-  </button>
+export const SignInButton = () => {
+  const navigate = useNavigate();
+
+  const handleSignIn = async () => {
+      try {
+          await signInWithGoogle();
+          
+          // Check if the auth state changes after Google sign-in
+          onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Check if the user is already in Firestore
+                const userDocRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userDocRef);
+
+                if (!userDoc.exists()) {
+                    // New user: navigate to profile setup
+                    navigate('/signinpage');
+                } else {
+                    // Existing user: navigate to profile or main page
+                    navigate('/view_profile');
+                }
+              }
+          });
+      } catch (error) {
+          console.error("Sign-in failed:", error);
+      }
+  };
+
+  return (
+      <button 
+        onClick={handleSignIn}
+        style={{
+          backgroundColor: '#28A745',
+          color: 'white',
+          padding: '10px 20px',
+          borderRadius: '8px',
+          cursor: 'pointer',
+        }}
+      >
+          <i className="fa-solid fa-sign-in-alt" style={{ fontSize: '12px' }}></i> Sign in with Google
+      </button>
+  );
+};
+
+
+export const SignOutButton = () => {
+  const navigate = useNavigate();
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/'); // Redirect to the homepage after signing out
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
+  return (
+    <button 
+      onClick={handleSignOut}
+      style={{
+        border: 'none',
+        borderRadius: '8px',
+        padding: '10px 20px',
+        fontSize: '14px',
+        fontWeight: '500',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        transition: 'all 0.2s ease-in-out',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        backgroundColor: '#DC3545',
+        color: 'white',
+        marginLeft: 'auto'
+      }}
+    >
+      <i className="fa-solid fa-sign-out-alt" style={{ fontSize: '12px' }}></i>
+      Sign out
+    </button>
+  );
+};
+
+
+const ProfileButton = () => (
+  <Link to="/view_profile" style={{ textDecoration: 'none' }}>
+    <button 
+      style={{
+        ...buttonBaseStyle,
+        backgroundColor: '#007bff',
+        marginLeft: 'auto'
+      }}
+    >
+      <i className="fa-solid fa-user" style={{ fontSize: '12px' }}></i>
+      Profile
+    </button>
+  </Link>
 );
 
-const SignOutButton = () => (
-  <button 
-    onClick={signOut}
-    style={{
-      ...buttonBaseStyle,
-      backgroundColor: '#DC3545',
-      marginLeft: 'auto'
-    }}
-  >
-    <i className="fa-solid fa-sign-out-alt" style={{ fontSize: '12px' }}></i>
-    Sign out
-  </button>
-);
 
 const AuthButton = () => {
   const [user] = useAuthState();
-  return user ? <SignOutButton /> : <SignInButton />;
+  return user ? <ProfileButton /> : <SignInButton />;
 };
 
 const Navigation = () => (
@@ -71,7 +144,7 @@ const Navigation = () => (
         fontWeight: 'bold',
         color: '#333'
       }}>
-        Critterly
+        critterly
       </span>
     </div>
     <AuthButton />
@@ -89,8 +162,8 @@ const styles = `
     background-color: #218838 !important;
   }
 
-  button[onClick="signOut"]:hover {
-    background-color: #C82333 !important;
+  a[href="/profile"] button:hover {
+    background-color: #0056b3 !important;
   }
 `;
 
