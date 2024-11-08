@@ -1,19 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import CreatePost from './components/CreatePost';
 import Map from './components/Map';
 import ViewPost from './components/ViewPost';
 import callGPT from './utilities/aicall';
+import {GoogleMapsProvider} from './components/GoogleMapAPI';
 
 const App = () => {
-
   return (
+    <GoogleMapsProvider>
     <Router>
       <div className="min-h-screen">
         <Routes>
           {/* Map Page */}
-          <Route path="/" element={<Map />} />
+          <Route path="/" element={<Map/>} />
 
 
           {/* Add post route */}
@@ -26,6 +27,8 @@ const App = () => {
         </Routes>
       </div>
     </Router>
+  </GoogleMapsProvider>
+  
   );
 };
 

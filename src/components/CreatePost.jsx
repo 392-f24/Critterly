@@ -1,19 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FaArrowLeft, FaMagic } from "react-icons/fa";
 import { storage, db, useAuthState } from "../utilities/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import callGPT from "../utilities/aicall.js";
+import LocationInput from "./LocationInput.jsx";
 
 const CreatePost = () => {
   // fields for 
   const [selectedImage, setSelectedImage] = useState(null);
   const [caption, setCaption] = useState("");
-  const [location, setLocation] = useState("");
+  const [geotag, setGeotag] = useState("");
   const [characterization, setCharacterization] = useState(null);
   const [user] = useAuthState();
   const navigate = useNavigate();
+  const [postId, setPostId] = useState(null); // Add this state to store the document ID
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -34,11 +36,11 @@ const CreatePost = () => {
       const postRef = doc(db, "posts", postId);
 
       // Update the existing post with the final caption and geotag
-      await setDoc(postRef, { caption, geotag: location }, { merge: true });
+      await setDoc(postRef, { caption, geotag }, { merge: true });
 
       setSelectedImage(null);
       setCaption("");
-      setLocation("");
+      setGeotag("");
       setCharacterization([]);
       setPostId(null); // Clear the postId after submitting
 
@@ -49,10 +51,13 @@ const CreatePost = () => {
   };
 
 
-  const [postId, setPostId] = useState(null); // Add this state to store the document ID
+  const handleLocationSelect = (place) => {
+    setGeotag(place.formatted_address || "");
+  };
+
 
   const handleCharacterizeImage = async () => {
-    if (!selectedImage || !user) return;
+    if (!selectedImage || !user || !geotag) return;
 
     try {
       // Step 1: Upload Image to Firebase and get URL
@@ -68,7 +73,7 @@ const CreatePost = () => {
       const postRef = doc(db, "posts", Date.now().toString()); // Generate a unique ID for the post
       const initialPostData = {
         caption, 
-        geotag: "",  // Empty geotag initially
+        geotag,
         imageUrl,
         characterization: generateCharacterization,
         createdAt: new Date(),
@@ -146,13 +151,17 @@ const CreatePost = () => {
 
         <div style={styles.inputGroup}>
           <label>Location</label>
+          <LocationInput onLocationSelect={handleLocationSelect}/>
+          {/*
           <input
             type="text"
             placeholder="Enter location..."
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            value={geotag}
+            onChange={(e) => setGeotag(e.target.value)}
             style={styles.input}
           />
+           */}
+          
         </div>
 
         <button

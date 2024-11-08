@@ -1,22 +1,22 @@
-import React from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader } from '@googlemaps/js-api-loader';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { db } from '../utilities/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import Navigation from './Navigation';
 import styles from './Map.module.css';
+import { useGoogleMapsContext } from './GoogleMapAPI'; 
 
 export default function MapComponent() {
+    const mapRef = useRef(null);
     const navigate = useNavigate();
-    const mapRef = React.useRef(null);
-    const [mapLoaded, setMapLoaded] = React.useState(false);
-    const [coordinates, setCoordinates] = React.useState(null);
-    const [map, setMap] = React.useState(null);
-    const [infoWindows, setInfoWindows] = React.useState([]);
-    const [markers, setMarkers] = React.useState([]);
-    const [markerClusterer, setMarkerClusterer] = React.useState(null);
-    const [posts, setPosts] = React.useState([]);
+    const [coordinates, setCoordinates] = useState(null);
+    const [map, setMap] = useState(null);
+    const [infoWindows, setInfoWindows] = useState([]);
+    const [markers, setMarkers] = useState([]);
+    const [markerClusterer, setMarkerClusterer] = useState(null);
+    const [posts, setPosts] = useState([]);
+    const { isLoaded } = useGoogleMapsContext();
 
     const Create_Post = () => {
         navigate('/create_post');
@@ -25,6 +25,7 @@ export default function MapComponent() {
     const View_Post = () => {
         navigate('/view_post');
     };
+
 
     const createSinglePostContent = (post) => {
         const date = post.createdAt ? new Date(post.createdAt.toDate()).toLocaleDateString("en-US", {
@@ -71,7 +72,7 @@ export default function MapComponent() {
         `;
     };
 
-    React.useEffect(() => {
+    useEffect(() => {
         const fetchPosts = async () => {
             try {
                 const postsCollection = collection(db, 'posts');
@@ -88,124 +89,108 @@ export default function MapComponent() {
         fetchPosts();
     }, []);
 
-    React.useEffect(() => {
-        if (posts.length === 0) return;
+    useEffect(() => {
+        if (!isLoaded || posts.length === 0 || !window.google) return;
 
-        const loader = new Loader({
-            apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-            version: "beta",
-            libraries: ["maps", "marker", "geocoding"]
+        const geocoder = new google.maps.Geocoder();
+        const mapInstance = new google.maps.Map(mapRef.current, {
+            zoom: 15,
+            mapId: "DEMO_MAP_ID"
         });
 
-        loader.load()
-            .then(async (google) => {
-                const geocoder = new google.maps.Geocoder();
-                
-                const mapInstance = new google.maps.Map(mapRef.current, {
-                    zoom: 15,
-                    mapId: "DEMO_MAP_ID"
+        setMap(mapInstance);
+
+        // Set center to Northwestern
+        geocoder.geocode({
+            address: "633 Clark St, Evanston, IL 60208"
+        }, async (results, status) => {
+            if (status === "OK") {
+                const centerLocation = results[0].geometry.location;
+                mapInstance.setCenter(centerLocation);
+                setCoordinates({ 
+                    lat: centerLocation.lat(), 
+                    lng: centerLocation.lng() 
                 });
-                setMap(mapInstance);
 
-                // Set center to Northwestern
-                geocoder.geocode({
-                    address: "633 Clark St, Evanston, IL 60208"
-                }, async (results, status) => {
-                    if (status === "OK") {
-                        const centerLocation = results[0].geometry.location;
-                        mapInstance.setCenter(centerLocation);
-                        setCoordinates({ 
-                            lat: centerLocation.lat(), 
-                            lng: centerLocation.lng() 
-                        });
+                // Create a location hash map
+                const locationHashMap = {};
 
-                        // Create a location hash map
-                        const locationHashMap = {};
-
-                        // Geocode all posts and group them by location
-                        for (const post of posts) {
-                            try {
-                                const results = await new Promise((resolve, reject) => {
-                                    geocoder.geocode({ address: post.geotag }, (results, status) => {
-                                        if (status === "OK") {
-                                            resolve(results);
-                                        } else {
-                                            reject(status);
-                                        }
-                                    });
-                                });
-
-                                const position = results[0].geometry.location;
-                                const locationKey = `${position.lat()},${position.lng()}`;
-                                
-                                if (!locationHashMap[locationKey]) {
-                                    locationHashMap[locationKey] = {
-                                        position,
-                                        posts: []
-                                    };
+                // Geocode all posts and group them by location
+                for (const post of posts) {
+                    try {
+                        const results = await new Promise((resolve, reject) => {
+                            geocoder.geocode({ address: post.geotag }, (results, status) => {
+                                if (status === "OK") {
+                                    resolve(results);
+                                } else {
+                                    reject(status);
                                 }
-                                locationHashMap[locationKey].posts.push(post);
+                            });
+                        });
 
-                            } catch (error) {
-                                console.error(`Geocoding failed for ${post.geotag}:`, error);
-                            }
+                        const position = results[0].geometry.location;
+                        const locationKey = `${position.lat()},${position.lng()}`;
+                        
+                        if (!locationHashMap[locationKey]) {
+                            locationHashMap[locationKey] = {
+                                position,
+                                posts: []
+                            };
                         }
+                        locationHashMap[locationKey].posts.push(post);
 
-                        const markersArray = [];
-                        const infoWindowsArray = [];
-
-                        // Create markers for each unique location
-                        Object.values(locationHashMap).forEach(({ position, posts }) => {
-                            const marker = new google.maps.marker.AdvancedMarkerElement({
-                                position: position,
-                                map: mapInstance,
-                                title: posts.length > 1 ? `${posts.length} posts at this location` : posts[0].caption
-                            });
-
-                            const infoWindow = new google.maps.InfoWindow({
-                                content: posts.length > 1 ? createMultiplePostsContent(posts) : createSinglePostContent(posts[0]),
-                                maxWidth: 320
-                            });
-
-                            marker.addListener('click', () => {
-                                infoWindowsArray.forEach(iw => iw.close());
-                                infoWindow.open({
-                                    anchor: marker,
-                                    map: mapInstance
-                                });
-                            });
-
-                            markersArray.push(marker);
-                            infoWindowsArray.push(infoWindow);
-                        });
-
-                        setMarkers(markersArray);
-                        setInfoWindows(infoWindowsArray);
-
-                        // Initialize MarkerClusterer
-                        const clusterer = new MarkerClusterer({
-                            map: mapInstance,
-                            markers: markersArray,
-                            maxZoom: 15,
-                            gridSize: 60,
-                            minimumClusterSize: 2
-                        });
-
-                        setMarkerClusterer(clusterer);
-
-                    } else {
-                        console.error("Geocoding failed:", status);
-                        const fallbackCoords = { lat: 42.0565, lng: -87.6753 };
-                        mapInstance.setCenter(fallbackCoords);
-                        setCoordinates(fallbackCoords);
+                    } catch (error) {
+                        console.error(`Geocoding failed for ${post.geotag}:`, error);
                     }
+                }
+
+                const markersArray = [];
+                const infoWindowsArray = [];
+
+                // Create markers for each unique location
+                Object.values(locationHashMap).forEach(({ position, posts }) => {
+                    const marker = new google.maps.marker.AdvancedMarkerElement({
+                        position: position,
+                        map: mapInstance,
+                        title: posts.length > 1 ? `${posts.length} posts at this location` : posts[0].caption
+                    });
+
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: posts.length > 1 ? createMultiplePostsContent(posts) : createSinglePostContent(posts[0]),
+                        maxWidth: 320
+                    });
+
+                    marker.addListener('click', () => {
+                        infoWindowsArray.forEach(iw => iw.close());
+                        infoWindow.open({
+                            anchor: marker,
+                            map: mapInstance
+                        });
+                    });
+
+                    markersArray.push(marker);
+                    infoWindowsArray.push(infoWindow);
                 });
-                
-                setMapLoaded(true);
-            })
-            .catch(e => {
-                console.error('Error loading Google Maps:', e);
-            });
+
+                setMarkers(markersArray);
+                setInfoWindows(infoWindowsArray);
+
+                // Initialize MarkerClusterer
+                setMarkerClusterer(new MarkerClusterer({
+                    map: mapInstance,
+                    markers: markersArray,
+                    maxZoom: 15,
+                    gridSize: 60,
+                    minimumClusterSize: 2
+                }));
+
+            } else {
+                console.error("Geocoding failed:", status);
+                const fallbackCoords = { lat: 42.0565, lng: -87.6753 };
+                mapInstance.setCenter(fallbackCoords);
+                setCoordinates(fallbackCoords);
+            }
+        });
 
         // Cleanup function
         return () => {
@@ -214,16 +199,12 @@ export default function MapComponent() {
             }
             infoWindows.forEach(infoWindow => infoWindow.close());
         };
-    }, [posts]);
+    }, [isLoaded, posts]);
 
     return (
         <div style={{ height: '100vh', width: '100%' }}>
             <Navigation />
-            <div ref={mapRef} className={styles.mapContainer} style={{ position: 'relative', height: 'calc(100% - 60px)' }}>
-                {mapLoaded && coordinates && (
-                    <div id="map" style={{ width: '100%', height: '100%' }}></div>
-                )}
-            </div>
+            <div ref={mapRef} className={styles.mapContainer} style={{ position: 'relative', height: 'calc(100% - 60px)' }}></div>
             <div style={{ 
                 position: 'absolute', 
                 bottom: '20px', 
