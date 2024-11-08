@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { db, useAuthState } from '../utilities/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import Navigation from './Navigation';
 import styles from './Map.module.css';
 import GoogleMapsLoader from '../utilities/googleMapsLoader';
@@ -19,6 +19,7 @@ export default function MapComponent() {
     const [markerClusterer, setMarkerClusterer] = React.useState(null);
     const [posts, setPosts] = React.useState([]);
     const [initialFocus, setInitialFocus] = React.useState(null);
+    const [usernames, setUsernames] = React.useState({}); // New state for usernames
 
     const Create_Post = () => {
         navigate('/create_post');
@@ -26,6 +27,24 @@ export default function MapComponent() {
 
     const View_Post = () => {
         navigate('/view_post');
+    };
+
+    const fetchUsernames = async (posts) => {
+        const usernameMap = {};
+        for (const post of posts) {
+            if (post.userId && !usernames[post.userId]) {
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', post.userId));
+                    if (userDoc.exists()) {
+                        usernameMap[post.userId] = userDoc.data().username || 'Anonymous User';
+                    }
+                } catch (error) {
+                    console.error(`Error fetching username for user ${post.userId}:`, error);
+                    usernameMap[post.userId] = 'Anonymous User';
+                }
+            }
+        }
+        setUsernames(prev => ({ ...prev, ...usernameMap }));
     };
 
     const createWildlifeContent = (characterization) => {
@@ -130,7 +149,9 @@ export default function MapComponent() {
             day: "2-digit",
             year: "numeric"
         }) : "Date not available";
-    
+
+        const username = usernames[post.userId] || 'Anonymous User';
+
         return `
             <div style="
                 width: 280px;
@@ -168,7 +189,7 @@ export default function MapComponent() {
                             cursor: pointer;
                         "
                         onclick="window.location.href='/profile/${post.userId}'">
-                            ${post.userName || 'Anonymous User'}
+                            ${username}
                         </div>
                         <div style="font-size: 12px; color: #666;">
                             ${date}
@@ -190,7 +211,7 @@ export default function MapComponent() {
                         View Profile
                     </button>
                 </div>
-    
+
                 <div style="
                     width: 100%;
                     height: 180px;
@@ -210,7 +231,7 @@ export default function MapComponent() {
                         onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=Image+Not+Found';"
                     />
                 </div>
-    
+
                 <div style="padding: 12px;">
                     <p style="
                         margin: 0;
@@ -282,7 +303,9 @@ export default function MapComponent() {
                 }));
                 setPosts(postData);
 
-                // Check if we need to focus on a specific post
+                // Fetch usernames for all posts
+                await fetchUsernames(postData);
+
                 const postId = searchParams.get('postId');
                 const postLocation = searchParams.get('postLocation');
                 if (postId && postLocation) {
@@ -312,7 +335,6 @@ export default function MapComponent() {
                 });
                 setMap(mapInstance);
 
-                // Set initial center (Northwestern or provided location)
                 const initialLocation = initialFocus?.location || "633 Clark St, Evanston, IL 60208";
                 
                 geocoder.geocode({
@@ -326,10 +348,8 @@ export default function MapComponent() {
                             lng: centerLocation.lng() 
                         });
 
-                        // Create a location hash map
                         const locationHashMap = {};
 
-                        // Geocode all posts and group them by location
                         for (const post of posts) {
                             try {
                                 const results = await new Promise((resolve, reject) => {
@@ -361,7 +381,6 @@ export default function MapComponent() {
                         const markersArray = [];
                         const infoWindowsArray = [];
 
-                        // Create markers for each unique location
                         Object.values(locationHashMap).forEach(({ position, posts }) => {
                             const marker = new google.maps.marker.AdvancedMarkerElement({
                                 position: position,
@@ -385,20 +404,17 @@ export default function MapComponent() {
                             markersArray.push(marker);
                             infoWindowsArray.push(infoWindow);
 
-                            // If this marker contains our target post, open its info window
                             if (initialFocus?.post && posts.some(p => p.id === initialFocus.post.id)) {
                                 infoWindow.open({
-                                    anchor: marker,
-                                    map: mapInstance
+                                    anchor: marker, map: mapInstance
                                 });
-                                mapInstance.setZoom(17);  // Zoom in closer to the target
+                                mapInstance.setZoom(17);
                             }
                         });
 
                         setMarkers(markersArray);
                         setInfoWindows(infoWindowsArray);
 
-                        // Initialize MarkerClusterer
                         const clusterer = new MarkerClusterer({
                             map: mapInstance,
                             markers: markersArray,
@@ -417,12 +433,12 @@ export default function MapComponent() {
                     }
                 });
                 
-                setMapLoaded(true);})
+                setMapLoaded(true);
+            })
             .catch(e => {
                 console.error('Error loading Google Maps:', e);
             });
 
-        // Cleanup function
         return () => {
             if (markerClusterer) {
                 markerClusterer.clearMarkers();
