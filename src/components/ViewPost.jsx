@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { db } from '../utilities/firebase';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 //import { mockAnimalPosts } from '../mock_data/animalPosts';
@@ -8,6 +8,7 @@ import Post from './Post';
 
 export default function ViewPost() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [posts, setPosts] = useState([]);
 
     // fetch post info on load
@@ -35,13 +36,30 @@ export default function ViewPost() {
                 
                 // setPosts(postsANDuserData);
                 setPosts(postData);
+                const params = new URLSearchParams(location.search);
+                const postId = params.get('postId');
+
+                // if given postid, scroll to that post after delay to ensure rendered
+                if (postId) {
+                    setTimeout(() => {
+                        const postElement = document.getElementById(`post-${postId}`);
+                        if (postElement) {
+                            postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            // Add temporary highlight effect
+                            postElement.style.backgroundColor = '#e3f2fd';
+                            setTimeout(() => {
+                                postElement.style.backgroundColor = '';
+                            }, 2000);
+                        }
+                    }, 100);
+                }
             }
             catch(error) {
                 console.error("Error fetching posts from firestore:", error);
             }
         };
         fetchPosts();
-    }, []);
+    }, [location]);
 
     const Go_To_Map = () => {
         navigate('/');
@@ -54,7 +72,13 @@ export default function ViewPost() {
         <div>
             <div className={styles.postContainer}>
                 {posts.map(post => (
-                    <Post key={post.id} postData={post} />
+                    <div 
+                    key={post.id} 
+                    id={`post-${post.id}`}
+                    style={{ transition: 'background-color 0.3s ease' }}
+                    >
+                        <Post postData={post} />
+                    </div>
                 ))}
             </div>
             <div style={{ 
