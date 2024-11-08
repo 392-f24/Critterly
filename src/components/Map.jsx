@@ -26,43 +26,215 @@ export default function MapComponent() {
         navigate('/view_post');
     };
 
-    const createSinglePostContent = (post) => {
-        const date = post.createdAt ? new Date(post.createdAt.toDate()).toLocaleDateString("en-US", {
-            month: "2-digit",
-            day: "2-digit",
-            year: "numeric"
-        }) : "Date not available";
+    const createWildlifeContent = (characterization) => {
+        if (!characterization) return '';
+
+        const renderRarityStars = (rarity) => {
+            return [...Array(rarity)].map(() => 
+                `<span style="color: #ffd700; margin-right: 2px;">★</span>`
+            ).join('');
+        };
+
+        const renderThreatLevel = (level) => {
+            return [...Array(level)].map(() => 
+                `<span style="color: #ff4444; margin-right: 2px;">☠</span>`
+            ).join('');
+        };
 
         return `
-            <div style="width: 250px; display: flex; flex-direction: column; align-items: center;">
-                <div style="width: 100%; max-height: 150px; display: flex; justify-content: center; align-items: center; overflow: hidden; margin-bottom: 8px;">
-                    <img src="${post.imageUrl}" 
-                        alt="${post.caption || 'Post image'}" 
-                        style="max-width: 100%;
-                               max-height: 150px;
-                               object-fit: contain;
-                               display: block;
-                               margin: 0 auto;"
-                        onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=Image+Not+Found';"
-                    />
+            <div style="
+                padding: 16px;
+                background-color: #ffffff;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                margin-top: 16px;
+            ">
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    margin-bottom: 16px;
+                ">
+                    <span style="color: #28a745; font-size: 24px;">🌿</span>
+                    <h3 style="
+                        margin: 0;
+                        font-size: 20px;
+                        font-weight: 600;
+                        color: #2c3e50;
+                    ">${characterization.Species}</h3>
                 </div>
-                <div style="padding: 8px; width: 100%;">
-                    <h3 style="margin: 6px 0; color: #333; font-size: 16px;">${post.caption || 'No caption'}</h3>
-                    <p style="margin: 4px 0; color: #888; font-size: 12px;">
-                        Posted: ${date}
+
+                <div style="
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 16px;
+                    margin-bottom: 16px;
+                ">
+                    <div>
+                        <span style="font-size: 14px; color: #666; font-weight: 500;">Class:</span>
+                        <span style="font-size: 16px; color: #2c3e50; display: block;">${characterization.Class}</span>
+                    </div>
+
+                    <div>
+                        <span style="font-size: 14px; color: #666; font-weight: 500;">Diet:</span>
+                        <span style="font-size: 16px; color: #2c3e50; display: block;">${characterization.Diet}</span>
+                    </div>
+
+                    <div>
+                        <span style="font-size: 14px; color: #666; font-weight: 500;">Rarity:</span>
+                        <div>${renderRarityStars(characterization.Rarity)}</div>
+                    </div>
+
+                    <div>
+                        <span style="font-size: 14px; color: #666; font-weight: 500;">Threat Level:</span>
+                        <div>${renderThreatLevel(characterization.ThreatLevel)}</div>
+                    </div>
+                </div>
+
+                <div style="
+                    margin-bottom: 16px;
+                    padding: 12px;
+                    background-color: #f8f9fa;
+                    border-radius: 4px;
+                ">
+                    <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #2c3e50;">
+                        ${characterization.Description}
+                    </p>
+                </div>
+
+                <div style="
+                    padding: 12px;
+                    background-color: #e3f2fd;
+                    border-radius: 4px;
+                ">
+                    <span style="
+                        display: block;
+                        font-size: 14px;
+                        font-weight: 500;
+                        color: #1976d2;
+                        margin-bottom: 4px;
+                    ">Fun Fact:</span>
+                    <p style="margin: 0; font-size: 14px; color: #2c3e50;">
+                        ${characterization.FunFact}
                     </p>
                 </div>
             </div>
         `;
     };
 
+    const createSinglePostContent = (post) => {
+        const date = post.createdAt ? new Date(post.createdAt.toDate()).toLocaleDateString("en-US", {
+            month: "2-digit",
+            day: "2-digit",
+            year: "numeric"
+        }) : "Date not available";
+    
+        return `
+            <div style="
+                width: 280px;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+                margin: 10px;
+            ">
+                <!-- User Profile Section -->
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    padding: 12px;
+                    border-bottom: 1px solid #eee;
+                    background-color: #f8f9fa;
+                ">
+                    <div style="
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 50%;
+                        background-color: #e0e0e0;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin-right: 12px;
+                    ">
+                        <span style="color: #666;">👤</span>
+                    </div>
+                    <div style="flex-grow: 1;">
+                        <div style="font-weight: 500; color: #333;">
+                            ${post.userName || 'Anonymous User'}
+                        </div>
+                        <div style="font-size: 12px; color: #666;">
+                            ${date}
+                        </div>
+                    </div>
+                    <button onclick="alert('View Profile')" style="
+                        padding: 6px 12px;
+                        background-color: #4A90E2;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        cursor: pointer;
+                        transition: background-color 0.2s;
+                    ">
+                        Profile
+                    </button>
+                </div>
+    
+                <!-- Image Container -->
+                <div style="
+                    width: 100%;
+                    height: 180px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    background-color: #f8f9fa;
+                    overflow: hidden;
+                ">
+                    <img src="${post.imageUrl}" 
+                        alt="${post.caption || 'Post image'}" 
+                        style="
+                            width: 100%;
+                            height: 100%;
+                            object-fit: cover;
+                        "
+                        onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=Image+Not+Found';"
+                    />
+                </div>
+    
+                <!-- Caption Container -->
+                <div style="
+                    padding: 12px;
+                    background-color: white;
+                ">
+                    <p style="
+                        margin: 0;
+                        color: #333;
+                        font-size: 14px;
+                        line-height: 1.4;
+                    ">
+                        ${post.caption || 'No caption'}
+                    </p>
+                </div>
+    
+                ${post.characterization ? createWildlifeContent(post.characterization) : ''}
+            </div>
+        `;
+    };
+    
     const createMultiplePostsContent = (posts) => {
         return `
-            <div style="width: 250px; max-height: 400px; overflow-y: auto;">
+            <div style="
+                width: 320px;
+                max-height: 80vh;
+                overflow-y: auto;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                padding: 10px;
+            ">
                 ${posts.map((post, index) => `
                     <div style="
-                        padding: 10px;
-                        ${index !== 0 ? 'border-top: 1px solid #eee;' : ''}
+                        ${index !== 0 ? 'margin-top: 20px;' : ''}
                     ">
                         ${createSinglePostContent(post)}
                     </div>
