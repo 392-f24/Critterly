@@ -16,7 +16,8 @@ const CreatePost = () => {
   const [user] = useAuthState();
   const navigate = useNavigate();
   const [isCharacterizing, setIsCharacterizing] = useState(false);
-  const [postId, setPostId] = useState(null);
+  const [isPosting, setIsPosting] = useState(false);
+  const [imageUrl, setImageUrl] = useState(null);
   const [isLoadingMaps, setIsLoadingMaps] = useState(true);
   
   // Add refs for autocomplete
@@ -82,25 +83,8 @@ const CreatePost = () => {
       }
       const imageUrl = URL.createObjectURL(file);
       setSelectedImage({ file, url: imageUrl });
-    }
-  };
-
-  const handlePostSubmit = async () => {
-    if (!postId || !user) return;
-
-    try {
-      const postRef = doc(db, "posts", postId);
-      await setDoc(postRef, { caption, geotag: location }, { merge: true });
-
-      setSelectedImage(null);
-      setCaption("");
-      setLocation("");
-      setCharacterization(null);
-      setPostId(null);
-
-      navigate("/");
-    } catch (error) {
-      console.error("Error submitting post:", error);
+      setImageUrl(null); // Reset imageUrl when new image is selected
+      setCharacterization(null); // Reset characterization when new image is selected
     }
   };
 
@@ -110,29 +94,52 @@ const CreatePost = () => {
     try {
       setIsCharacterizing(true);
 
+      // Upload image to storage
       const imageRef = ref(storage, `posts/${Date.now()}_${selectedImage.file.name}`);
       await uploadBytes(imageRef, selectedImage.file);
-      const imageUrl = await getDownloadURL(imageRef);
+      const uploadedImageUrl = await getDownloadURL(imageRef);
+      setImageUrl(uploadedImageUrl);
 
-      const generateCharacterization = await callGPT(imageUrl);
-
-      const postRef = doc(db, "posts", Date.now().toString());
-      const initialPostData = {
-        caption,
-        geotag: "",
-        imageUrl,
-        characterization: generateCharacterization,
-        createdAt: new Date(),
-        userId: user.uid,
-      };
-      await setDoc(postRef, initialPostData);
-
+      // Get characterization from GPT
+      const generateCharacterization = await callGPT(uploadedImageUrl);
       setCharacterization(generateCharacterization);
-      setPostId(postRef.id);
     } catch (error) {
       console.error("Error characterizing image:", error);
     } finally {
       setIsCharacterizing(false);
+    }
+  };
+
+  const handlePostSubmit = async () => {
+    if (!selectedImage || !caption || !location || !user || !imageUrl) return;
+
+    try {
+      setIsPosting(true);
+
+      const postRef = doc(db, "posts", Date.now().toString());
+      const postData = {
+        caption,
+        geotag: location,
+        imageUrl,
+        characterization: characterization || "", // Make characterization optional
+        createdAt: new Date(),
+        userId: user.uid,
+      };
+
+      await setDoc(postRef, postData);
+
+      // Reset form
+      setSelectedImage(null);
+      setCaption("");
+      setLocation("");
+      setCharacterization(null);
+      setImageUrl(null);
+
+      navigate("/");
+    } catch (error) {
+      console.error("Error submitting post:", error);
+    } finally {
+      setIsPosting(false);
     }
   };
 
@@ -190,10 +197,10 @@ const CreatePost = () => {
           onClick={handleCharacterizeImage}
           style={{
             ...styles.characterizeButton,
-            opacity: isCharacterizing || !selectedImage ? 0.7 : 1,
-            cursor: isCharacterizing || !selectedImage ? "not-allowed" : "pointer",
+            opacity: isCharacterizing || !selectedImage || isPosting ? 0.7 : 1,
+            cursor: isCharacterizing || !selectedImage || isPosting ? "not-allowed" : "pointer",
           }}
-          disabled={isCharacterizing || !selectedImage}
+          disabled={isCharacterizing || !selectedImage || isPosting}
         >
           {isCharacterizing ? (
             <BiLoaderAlt style={{ marginRight: "8px" }} className="spin" />
@@ -235,14 +242,21 @@ const CreatePost = () => {
 
         <button
           onClick={handlePostSubmit}
-          disabled={!selectedImage || !caption || !location || isCharacterizing}
+          disabled={!selectedImage || !caption || !location || isCharacterizing || isPosting || !imageUrl}
           style={{
             ...styles.button,
-            opacity: (!selectedImage || !caption || !location || isCharacterizing) ? 0.5 : 1,
-            cursor: (!selectedImage || !caption || !location || isCharacterizing) ? "not-allowed" : "pointer",
+            opacity: (!selectedImage || !caption || !location || isCharacterizing || isPosting || !imageUrl) ? 0.5 : 1,
+            cursor: (!selectedImage || !caption || !location || isCharacterizing || isPosting || !imageUrl) ? "not-allowed" : "pointer",
           }}
         >
-          Post
+          {isPosting ? (
+            <>
+              <BiLoaderAlt style={{ marginRight: "8px" }} className="spin" />
+              Posting...
+            </>
+          ) : (
+            "Post"
+          )}
         </button>
       </div>
     </div>
