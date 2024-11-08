@@ -39,6 +39,8 @@ const EditProfilePage = () => {
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState(null);
 
+  const [ImageUrl, setImageUrl] = useState(null);
+
 
 
   useEffect(() => {
@@ -63,6 +65,10 @@ const EditProfilePage = () => {
             speciesSpotted: Array.isArray(data.Species) ? data.Species.length : 0
           });
 
+          setNewProfilePic(data.profilePicture || profilePic);
+          setNewBiography(data.biography || "");
+          
+
         } catch (error) {
           setDataError(error);
         } finally {
@@ -78,8 +84,6 @@ const EditProfilePage = () => {
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
   };
-
-  // const handleEditProfile = () => setIsEditing(true);
 
   // const handleSaveChanges = async () => {
   //   try {
@@ -121,87 +125,38 @@ const EditProfilePage = () => {
     return <p>Error fetching user data: {dataError.message}</p>;
   }
 
-//   return (
-//     <div style={styles.profile}>
-//       {/* Profile Picture */}
-//       <div style={styles.profilePictureContainer}>
-//         <img
-//           src={userData.profilePicture} 
-//           alt="Profile"
-//           style={styles.profilePicture}
-//           onClick={toggleExpanded}
-//         />
-//       </div>
+// const handleImageChange = (event) => {
+//     console.log("Image changed");
+//     const file = event.target.files[0];
+//     if (file) {
+//       setNewProfilePic(URL.createObjectURL(file)); // Display the new image
+//     }
+//   };
 
-//       {/* Expanded View */}
-//       {isExpanded && (
-//         <div style={styles.overlay} onClick={toggleExpanded}>
-//           <div style={styles.expandedImageContainer}>
-//             <img
-//               src={userData.profilePicture}
-//               alt="Profile Expanded"
-//               style={styles.expandedImage}
-//             />
-//             <button style={styles.closeButton} onClick={toggleExpanded}>
-//               &times;
-//             </button>
-//           </div>
-//         </div>
-//       )}
-
-// {isEditing ? (
-//         <>
-//           <input
-//             type="file"
-//             accept="image/*"
-//             onChange={(e) => setNewProfilePic(e.target.files[0])}
-//             style={styles.fileInput}
-//           />
-//           <textarea
-//             value={newBiography}
-//             onChange={(e) => setNewBiography(e.target.value)}
-//             style={styles.biographyInput}
-//             placeholder="Update your biography"
-//           />
-//           <button onClick={handleSaveChanges} style={styles.saveButton}>Save Changes</button>
-//         </>
-//       ) : (
-//         <>
-//           <h2 style={styles.username}>{userData.username}</h2>
-//           <p style={styles.email}>{userData.email}</p>
-//           <p style={styles.biography}>{userData.biography}</p>
-
-//           <button onClick={handleEditProfile} style={styles.editButton}>Edit Profile</button>
-//         </>
-//       )}
-      
-//       <div style={styles.statsContainer}>
-//         <div style={styles.stat}>
-//           <span style={styles.statNumber}>{userData.posts}</span>
-//           <span style={styles.statLabel}>Posts</span>
-//         </div>
-//         <div style={styles.stat}>
-//           <span style={styles.statNumber}>{userData.locationsVisited}</span>
-//           <span style={styles.statLabel}>Locations Visited</span>
-//         </div>
-//         <div style={styles.stat}>
-//           <span style={styles.statNumber}>{userData.speciesSpotted}</span>
-//           <span style={styles.statLabel}>Species Spotted</span>
-//         </div>
-//       </div>
-
-//       <div style={styles.buttonRow}>
-//         <SignOutButton />
-//       </div>
-//     </div>
-//   );
-
-const handleImageChange = (event) => {
-    const file = event.target.files[0];
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
     if (file) {
-      setNewProfilePic(URL.createObjectURL(file)); // Display the new image
+      if (!file.type.startsWith("image/")) {
+        alert("Please upload a valid image file.");
+        return;
+      }
+      const imageUrl = URL.createObjectURL(file);
+      setNewProfilePic(imageUrl);
+      setSelectedImage({ file, url: imageUrl });
     }
   };
+
+  const handleSaveChanges = async () => {
+    try {
+        const imageRef = ref(storage, `users/${Date.now()}_${selectedImage.file.name}`);
+        await uploadBytes(imageRef, selectedImage.file);
+        const uploadedImageUrl = await getDownloadURL(imageRef);
+        setImageUrl(uploadedImageUrl);
+    }
+    catch (error) {
+        console.error("Error uploading image:", error);
+    }
+  }
 
 return (
   <div style={styles.profile}>
@@ -222,7 +177,7 @@ return (
         style={{ display: 'none' }}
         onChange={handleImageChange}
     />
-    <label htmlFor="upload-image" className="upload-button">
+    <label htmlFor="upload-image" style={styles.UploadButton}>
         Upload New Image
     </label>
 
@@ -242,11 +197,17 @@ return (
       </div>
     )}
 
-
     <h2 style={styles.username}>{userData.username}</h2>
     <p style={styles.email}>{userData.email}</p>
-    <p style={styles.biography}>{userData.biography}</p>
-    
+
+
+    <textarea
+        value={newBiography}
+        onChange={(e) => setNewBiography(e.target.value)}
+        style={styles.styled_text_area}
+        placeholder="Update your biography"
+    />
+
     <div style={styles.statsContainer}>
       <div style={styles.stat}>
         <span style={styles.statNumber}>{userData.posts}</span>
@@ -261,6 +222,8 @@ return (
         <span style={styles.statLabel}>Species Spotted</span>
       </div>
     </div>
+
+    
     <div style={styles.buttonRow}>
       <Link to="/view_profile">
         <button style={styles.CancelButton}>Cancel</button>
@@ -347,7 +310,7 @@ const styles = {
   },
   username: {
     fontSize: '1.5em',
-    margin: '50px 0 5px',
+    margin: '25px 0 5px',
     color: '#333',
   },
   email: {
@@ -359,33 +322,6 @@ const styles = {
     color: '#777',
     fontSize: '0.9em',
     margin: '5px 0 50px',
-  },
-  statsContainer: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-evenly', // Distribute the stats evenly in the row
-    width: '100%',
-    marginBottom: '20px',
-  },
-  stat: {
-    display: 'flex',
-    flexDirection: 'column', // Stack label under number
-    alignItems: 'center',
-    flex: 1, // Makes each stat take up equal width
-    justifyContent: 'center', // Center vertically
-  },
-  statNumber: {
-    alignSelf: 'center',
-    fontSize: '20px',
-    fontWeight: 'bold',
-    marginBottom: '5px', // Space between number and label
-  },
-  statLabel: {
-    alignSelf: 'center',
-    color: '#777',
-    fontSize: '0.9em', // Smaller font for the label
-    textAlign: 'center',
   },
   buttonRow: {
     display: 'flex',
@@ -416,6 +352,64 @@ const styles = {
     width: '120px',
     borderRadius: '8px',
   },
+    UploadButton: {
+        margin: '20px 0 10px',
+        padding: '10px 20px',
+        fontSize: '1em',
+        color: 'white',
+        backgroundColor: '#74C365',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        flex: 1, // Makes both buttons the same size within the row
+        width: '150px',
+        borderRadius: '8px',
+        textAlign: 'center',
+    },
+    styled_text_area: {
+        marginTop: '20px',
+        marginBottom: '20px',
+        width: '100%',               /* Full width */
+        max_width: '600px',          /* Max width for large screens */
+        min_height: '150px',         /* Minimum height */
+        padding: '10px',            /* Padding inside */
+        border: '1px solid #ddd',    /* Light border */
+        border_radius: '8px',        /* Rounded corners */
+        box_shadow: '2px 4px 8px rgba(0, 0, 0, 0.1)', 
+        font_size: '16px',           /* Font size */
+        font: 'Arial, sans-serif', /* Font family */
+        resize: 'vertical',         /* Allow vertical resizing */
+        outline: 'none',             
+        transition: 'border-color 0.3s ease-in-out',
+    },
+    statsContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-evenly', // Distribute the stats evenly in the row
+    width: '100%',
+    marginBottom: '20px',
+    marginTop: '15px',
+    },
+    stat: {
+    display: 'flex',
+    flexDirection: 'column', // Stack label under number
+    alignItems: 'center',
+    flex: 1, // Makes each stat take up equal width
+    justifyContent: 'center', // Center vertically
+    },
+    statNumber: {
+    alignSelf: 'center',
+    fontSize: '20px',
+    fontWeight: 'bold',
+    marginBottom: '5px', // Space between number and label
+    },
+    statLabel: {
+    alignSelf: 'center',
+    color: '#777',
+    fontSize: '0.9em', // Smaller font for the label
+    textAlign: 'center',
+    },
 };
 
 
