@@ -179,14 +179,19 @@ const CreatePost = () => {
   };
 
   const handlePostSubmit = async () => {
+    if (!user) {
+      alert("You must be logged in to create a post");
+      return;
+    }
+  
     if (isImageMissing || isCaptionMissing || isLocationMissing) {
       setShowValidation(true);
       return;
     }
-
+  
     try {
       setIsPosting(true);
-
+  
       const postRef = doc(db, "posts", Date.now().toString());
       const postData = {
         caption,
@@ -196,7 +201,7 @@ const CreatePost = () => {
         createdAt: new Date(),
         userId: user.uid,
       };
-
+  
       await setDoc(postRef, postData);
 
       setSelectedImage(null);
