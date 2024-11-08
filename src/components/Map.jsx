@@ -441,7 +441,7 @@ export default function MapComponent() {
                         transition: 'all 0.2s ease-in-out'
                     }}
                 >
-                    <span style={{ fontSize: '16px' }}>➕</span>
+                    <span style={{ fontSize: '16px' }}>+</span>
                     Create Post
                 </button>
                 <button 
