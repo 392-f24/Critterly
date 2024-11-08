@@ -7,29 +7,28 @@ import profilePic from '../mock_data/Default_Profile.png';
 import { updateDoc } from "firebase/firestore";
 import { useAuthState, signOut } from '../utilities/firebase';
 
-const SignOutButton = () => {
+const SaveButton = () => {
   const navigate = useNavigate();
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/'); // Redirect to the homepage after signing out
+      navigate('/view_profile'); // Redirect to the homepage after signing out
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("Error saving:", error);
     }
   };
 
   return (
     <button 
       onClick={handleSignOut}
-      style={styles.signOutButton}>
-      {/* <i className="fa-solid fa-sign-out-alt" style={{ padding: '5px', fontSize: '12px' }}></i> */}
-      Sign out
+      style={styles.SaveButton}>
+      Save
     </button>
   );
 };
 
 
-const ProfilePage = () => {
+const EditProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [newProfilePic, setNewProfilePic] = useState(null);
   const [newBiography, setNewBiography] = useState('');
@@ -39,6 +38,7 @@ const ProfilePage = () => {
   const [userData, setUserData] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState(null);
+
 
 
   useEffect(() => {
@@ -196,23 +196,42 @@ const ProfilePage = () => {
 //     </div>
 //   );
 
+const handleImageChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setNewProfilePic(URL.createObjectURL(file)); // Display the new image
+    }
+  };
+
 return (
   <div style={styles.profile}>
     {/* Profile Picture */}
     <div style={styles.profilePictureContainer}>
       <img
-        src={userData.profilePicture} // Replace with your image source
+        src={newProfilePic} // Replace with your image source
         alt="Profile"
         style={styles.profilePicture}
         onClick={toggleExpanded} // Click to expand
       />
     </div>
+
+    <input
+        type="file"
+        accept="image/*"
+        id="upload-image"
+        style={{ display: 'none' }}
+        onChange={handleImageChange}
+    />
+    <label htmlFor="upload-image" className="upload-button">
+        Upload New Image
+    </label>
+
     {/* Expanded View */}
     {isExpanded && (
       <div style={styles.overlay} onClick={toggleExpanded}>
         <div style={styles.expandedImageContainer}>
           <img
-            src={userData.profilePicture} // Same image source
+            src={newProfilePic} // Same image source
             alt="Profile Expanded"
             style={styles.expandedImage}
           />
@@ -222,6 +241,8 @@ return (
         </div>
       </div>
     )}
+
+
     <h2 style={styles.username}>{userData.username}</h2>
     <p style={styles.email}>{userData.email}</p>
     <p style={styles.biography}>{userData.biography}</p>
@@ -241,10 +262,10 @@ return (
       </div>
     </div>
     <div style={styles.buttonRow}>
-      <Link to="/edit_profile">
-        <button style={styles.editProfileButton}>Edit Profile</button>
+      <Link to="/view_profile">
+        <button style={styles.CancelButton}>Cancel</button>
       </Link>
-      <SignOutButton />
+      <SaveButton />
     </div>
   </div>
   );
@@ -371,10 +392,10 @@ const styles = {
     gap: '20px', // Space between buttons
     marginTop: '20px',
   },
-  signOutButton: {
+  SaveButton: {
     padding: '10px 20px',
     fontSize: '1em',
-    color: '#fff',
+    color: 'white',
     backgroundColor: '#8FBC8B',
     border: 'none',
     borderRadius: '4px',
@@ -383,11 +404,11 @@ const styles = {
     width: '120px',
     borderRadius: '8px',
   },
-  editProfileButton: {
+  CancelButton: {
     padding: '10px 20px',
     fontSize: '1em',
-    color: '#fff',
-    backgroundColor: '#87A96B',
+    color: 'black',
+    backgroundColor: '##B0B0B0',
     border: 'none',
     borderRadius: '4px',
     cursor: 'pointer',
@@ -547,4 +568,4 @@ const styles = {
 //   },
 // };
 
-export default ProfilePage;
+export default EditProfilePage;

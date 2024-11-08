@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
-import { db } from '../utilities/firebase';
+import { db, useAuthState } from '../utilities/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import Navigation from './Navigation';
 import styles from './Map.module.css';
@@ -407,6 +407,8 @@ export default function MapComponent() {
         };
     }, [posts, initialFocus]);
 
+    const {user, loading, error} = useAuthState();
+
     return (
         <div style={{ height: '100vh', width: '100%' }}>
             <Navigation />
@@ -423,6 +425,7 @@ export default function MapComponent() {
                 display: 'flex',
                 gap: '12px'
             }}>
+                {user &&
                 <button 
                     onClick={Create_Post} 
                     style={{
@@ -444,6 +447,7 @@ export default function MapComponent() {
                     <span style={{ fontSize: '16px' }}>+</span>
                     Create Post
                 </button>
+                }
                 <button 
                     onClick={View_Post}
                     style={{
