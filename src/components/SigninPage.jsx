@@ -38,11 +38,11 @@ const SignInPage = () => {
                 email,  // This will still be included in the database
                 biography: '',
                 createdAt: new Date(),
-                posts: [],
+                posts: 0,
                 profilePicture: '',
             });
 
-            navigate('/view_profile');
+            navigate('/');
         } catch (err) {
             setError(`Error completing sign-in: ${err.message}`);
         }
@@ -89,7 +89,7 @@ const styles = {
         border: '1px solid #ccc',
     },
     signInButton: {
-        backgroundColor: '#28A745',
+        backgroundColor: '#87A96B',
         color: 'white',
         border: 'none',
         padding: '10px 20px',
