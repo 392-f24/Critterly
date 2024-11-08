@@ -103,7 +103,9 @@ export default function MapComponent() {
                 
                 const mapInstance = new google.maps.Map(mapRef.current, {
                     zoom: 15,
-                    mapId: "DEMO_MAP_ID"
+                    mapId: "DEMO_MAP_ID",
+                    disableDefaultUI: true,
+
                 });
                 setMap(mapInstance);
 
