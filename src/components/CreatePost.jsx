@@ -19,12 +19,16 @@ const CreatePost = () => {
   const [isPosting, setIsPosting] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
   const [isLoadingMaps, setIsLoadingMaps] = useState(true);
+  const [showValidation, setShowValidation] = useState(false);
   
-  // Add refs for autocomplete
   const autocompleteRef = useRef(null);
   const locationInputRef = useRef(null);
 
-  // Initialize Google Maps
+  // Validation state
+  const isImageMissing = !selectedImage;
+  const isCaptionMissing = !caption.trim();
+  const isLocationMissing = !location.trim();
+
   useEffect(() => {
     const initializeMaps = async () => {
       try {
@@ -37,7 +41,6 @@ const CreatePost = () => {
     initializeMaps();
   }, []);
 
-  // Initialize Autocomplete
   useEffect(() => {
     if (!isLoadingMaps && locationInputRef.current && !autocompleteRef.current && window.google) {
       try {
@@ -52,7 +55,6 @@ const CreatePost = () => {
           options
         );
 
-        // Add place_changed event listener
         autocompleteRef.current.addListener("place_changed", () => {
           const place = autocompleteRef.current.getPlace();
           if (place.formatted_address) {
@@ -66,7 +68,6 @@ const CreatePost = () => {
       }
     }
 
-    // Cleanup
     return () => {
       if (autocompleteRef.current) {
         window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
@@ -83,8 +84,8 @@ const CreatePost = () => {
       }
       const imageUrl = URL.createObjectURL(file);
       setSelectedImage({ file, url: imageUrl });
-      setImageUrl(null); // Reset imageUrl when new image is selected
-      setCharacterization(null); // Reset characterization when new image is selected
+      setImageUrl(null);
+      setCharacterization(null);
     }
   };
 
@@ -93,14 +94,11 @@ const CreatePost = () => {
 
     try {
       setIsCharacterizing(true);
-
-      // Upload image to storage
       const imageRef = ref(storage, `posts/${Date.now()}_${selectedImage.file.name}`);
       await uploadBytes(imageRef, selectedImage.file);
       const uploadedImageUrl = await getDownloadURL(imageRef);
       setImageUrl(uploadedImageUrl);
 
-      // Get characterization from GPT
       const generateCharacterization = await callGPT(uploadedImageUrl);
       setCharacterization(generateCharacterization);
     } catch (error) {
@@ -111,7 +109,10 @@ const CreatePost = () => {
   };
 
   const handlePostSubmit = async () => {
-    if (!selectedImage || !caption || !location || !user || !imageUrl) return;
+    if (isImageMissing || isCaptionMissing || isLocationMissing) {
+      setShowValidation(true);
+      return;
+    }
 
     try {
       setIsPosting(true);
@@ -121,19 +122,19 @@ const CreatePost = () => {
         caption,
         geotag: location,
         imageUrl,
-        characterization: characterization || "", // Make characterization optional
+        characterization: characterization || "",
         createdAt: new Date(),
         userId: user.uid,
       };
 
       await setDoc(postRef, postData);
 
-      // Reset form
       setSelectedImage(null);
       setCaption("");
       setLocation("");
       setCharacterization(null);
       setImageUrl(null);
+      setShowValidation(false);
 
       navigate("/");
     } catch (error) {
@@ -143,7 +144,6 @@ const CreatePost = () => {
     }
   };
 
-  // Prevent form submission on enter key in location input
   const handleLocationKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -160,14 +160,24 @@ const CreatePost = () => {
       <div style={styles.formContainer}>
         <h2>Create a New Post</h2>
 
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          style={styles.fileInput}
-        />
+        <div style={styles.inputGroup}>
+          <label style={styles.label}>
+            Image {isImageMissing && showValidation && 
+              <span style={styles.required}>* Required</span>
+            }
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            style={styles.fileInput}
+          />
+        </div>
 
-        <div style={styles.imageBox}>
+        <div style={{
+          ...styles.imageBox,
+          border: isImageMissing && showValidation ? '2px dashed #ff4444' : '1px solid #ccc'
+        }}>
           {selectedImage ? (
             <img
               src={selectedImage.url}
@@ -175,7 +185,11 @@ const CreatePost = () => {
               style={styles.imagePreview}
             />
           ) : (
-            <p style={styles.imagePlaceholder}>No Image Selected</p>
+            <p style={styles.imagePlaceholder}>
+              {showValidation && isImageMissing 
+                ? "Please select an image" 
+                : "No Image Selected"}
+            </p>
           )}
         </div>
 
@@ -211,17 +225,28 @@ const CreatePost = () => {
         </button>
 
         <div style={styles.inputGroup}>
-          <label>Caption</label>
+          <label style={styles.label}>
+            Caption {isCaptionMissing && showValidation && 
+              <span style={styles.required}>* Required</span>
+            }
+          </label>
           <textarea
             placeholder="Write a caption..."
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            style={styles.textarea}
+            style={{
+              ...styles.textarea,
+              border: isCaptionMissing && showValidation ? '2px solid #ff4444' : '1px solid #ccc'
+            }}
           />
         </div>
 
         <div style={styles.inputGroup}>
-          <label>Location</label>
+          <label style={styles.label}>
+            Location {isLocationMissing && showValidation && 
+              <span style={styles.required}>* Required</span>
+            }
+          </label>
           <input
             ref={locationInputRef}
             type="text"
@@ -231,7 +256,8 @@ const CreatePost = () => {
             onKeyDown={handleLocationKeyDown}
             style={{
               ...styles.input,
-              backgroundColor: isLoadingMaps ? '#f5f5f5' : '#fff'
+              backgroundColor: isLoadingMaps ? '#f5f5f5' : '#fff',
+              border: isLocationMissing && showValidation ? '2px solid #ff4444' : '1px solid #ccc'
             }}
             disabled={isLoadingMaps}
           />
@@ -242,9 +268,12 @@ const CreatePost = () => {
 
         <button
           onClick={handlePostSubmit}
-          disabled={!selectedImage || !caption || !location || isCharacterizing || isPosting || !imageUrl}
+          className={showValidation && (isImageMissing || isCaptionMissing || isLocationMissing) ? 'shake' : ''}
           style={{
             ...styles.button,
+            backgroundColor: showValidation && (isImageMissing || isCaptionMissing || isLocationMissing) 
+              ? '#ff4444' 
+              : '#007bff',
             opacity: (!selectedImage || !caption || !location || isCharacterizing || isPosting || !imageUrl) ? 0.5 : 1,
             cursor: (!selectedImage || !caption || !location || isCharacterizing || isPosting || !imageUrl) ? "not-allowed" : "pointer",
           }}
@@ -264,6 +293,17 @@ const CreatePost = () => {
 };
 
 const styles = {
+  label: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '5px',
+  },
+  required: {
+    color: '#ff4444',
+    fontSize: '14px',
+    fontWeight: 'normal',
+  },
   container: {
     padding: "20px",
     backgroundColor: "#f5f5f5",
@@ -398,7 +438,6 @@ const styles = {
   }
 };
 
-// Add the animation styles
 const styleSheet = document.createElement("style");
 styleSheet.textContent = `
   @keyframes spin {
@@ -410,8 +449,18 @@ styleSheet.textContent = `
     }
   }
   
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+  
   .spin {
     animation: spin 1s linear infinite;
+  }
+
+  .shake {
+    animation: shake 0.4s ease-in-out;
   }
 
   button:hover {
@@ -424,7 +473,6 @@ styleSheet.textContent = `
     box-shadow: none;
   }
 
-  /* Add styles for autocomplete dropdown */
   .pac-container {
     z-index: 1050;
     border-radius: 4px;
