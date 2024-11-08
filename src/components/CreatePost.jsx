@@ -65,17 +65,6 @@ const WildlifeDisplay = ({ data }) => {
         <span style={styles.funFactLabel}>Fun Fact:</span>
         <p style={styles.funFactText}>{data.FunFact}</p>
       </div>
-
-      <div style={styles.tags}>
-        {data.LivingThing && (
-          <span style={styles.tag}>Living Thing</span>
-        )}
-        {data.Appropriate && (
-          <span style={{...styles.tag, backgroundColor: '#e3f2fd', color: '#1976d2'}}>
-            Appropriate
-          </span>
-        )}
-      </div>
     </div>
   );
 };
@@ -276,7 +265,7 @@ const CreatePost = () => {
 
         {(characterization || isCharacterizing) && (
           <div style={styles.characterizationBox}>
-            <label>Wildlife Analysis:</label>
+
             {isCharacterizing ? (
               <div style={styles.loadingContainer}>
                 <BiLoaderAlt style={styles.loadingIcon} className="spin" />
